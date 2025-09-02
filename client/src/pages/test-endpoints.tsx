@@ -27,6 +27,10 @@ export default function TestEndpoints() {
   const [doorChannel, setDoorChannel] = useState("1");
   const [doorAction, setDoorAction] = useState("open");
   
+  const [advancedAction, setAdvancedAction] = useState("records");
+  const [captureUserId, setCaptureUserId] = useState("12345");
+  const [recognitionThreshold, setRecognitionThreshold] = useState("90");
+  
   const [testResults, setTestResults] = useState<any>(null);
 
   const { data: roomMappings } = useQuery({
@@ -131,6 +135,36 @@ export default function TestEndpoints() {
       toast({
         title: "Connection Test Failed",
         description: "Unable to test connections",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Test advanced Dahua features mutation
+  const testAdvancedMutation = useMutation({
+    mutationFn: () => {
+      const payload: any = { action: advancedAction };
+      if (advancedAction === 'capture') {
+        payload.userId = captureUserId;
+      } else if (advancedAction === 'threshold') {
+        payload.threshold = parseInt(recognitionThreshold);
+      }
+      return apiRequest("POST", "/api/test/dahua-advanced", payload);
+    },
+    onSuccess: async (response) => {
+      const result = await response.json();
+      setTestResults({ type: 'advanced', result });
+      toast({
+        title: "Advanced Test Complete",
+        description: result.success ? `${advancedAction} operation successful` : `${advancedAction} operation failed`,
+        variant: result.success ? "default" : "destructive"
+      });
+    },
+    onError: (error) => {
+      setTestResults({ type: 'advanced', error: error.message });
+      toast({
+        title: "Advanced Test Failed",
+        description: "Unable to perform advanced operation",
         variant: "destructive"
       });
     }
@@ -376,6 +410,100 @@ export default function TestEndpoints() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Advanced Dahua Operations */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <FlaskConical className="mr-2 text-chart-4" />
+              Advanced Dahua Operations
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="advanced-action">Operation</Label>
+                  <Select value={advancedAction} onValueChange={setAdvancedAction}>
+                    <SelectTrigger data-testid="select-advanced-action">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="records">Get Unlock Records</SelectItem>
+                      <SelectItem value="capture">Capture Face for User</SelectItem>
+                      <SelectItem value="threshold">Set Recognition Threshold</SelectItem>
+                      <SelectItem value="liveness">Enable Liveness Detection</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {advancedAction === 'capture' && (
+                  <div>
+                    <Label htmlFor="capture-user-id">User ID for Face Capture</Label>
+                    <Select value={captureUserId} onValueChange={setCaptureUserId}>
+                      <SelectTrigger data-testid="select-capture-user-id">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {users.map((user: any) => (
+                          <SelectItem key={user.id} value={user.dahuaUserId}>
+                            {user.dahuaUserId} - {user.email}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="12345">12345 (Default)</SelectItem>
+                        <SelectItem value="2689">2689 (Example)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
+                {advancedAction === 'threshold' && (
+                  <div>
+                    <Label htmlFor="recognition-threshold">Recognition Threshold (%)</Label>
+                    <Input
+                      id="recognition-threshold"
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={recognitionThreshold}
+                      onChange={(e) => setRecognitionThreshold(e.target.value)}
+                      placeholder="90"
+                      data-testid="input-recognition-threshold"
+                    />
+                  </div>
+                )}
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-secondary/50 rounded-lg p-4">
+                  <h4 className="text-sm font-medium mb-2">Operation Details</h4>
+                  {advancedAction === 'records' && (
+                    <p className="text-xs text-muted-foreground">Retrieves historical unlock/access records from the device for audit purposes.</p>
+                  )}
+                  {advancedAction === 'capture' && (
+                    <p className="text-xs text-muted-foreground">Initiates face capture for a specific user to update their facial recognition profile.</p>
+                  )}
+                  {advancedAction === 'threshold' && (
+                    <p className="text-xs text-muted-foreground">Sets the similarity threshold for face recognition matching (higher = more strict).</p>
+                  )}
+                  {advancedAction === 'liveness' && (
+                    <p className="text-xs text-muted-foreground">Enables anti-spoofing detection to prevent photo/video attacks.</p>
+                  )}
+                </div>
+                
+                <Button
+                  onClick={() => testAdvancedMutation.mutate()}
+                  disabled={testAdvancedMutation.isPending}
+                  className="w-full bg-chart-4 text-primary-foreground hover:bg-chart-4/90"
+                  data-testid="button-test-advanced-operation"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  {testAdvancedMutation.isPending ? "Processing..." : `Execute ${advancedAction.charAt(0).toUpperCase()}${advancedAction.slice(1)}`}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Test Results */}
         {testResults && (

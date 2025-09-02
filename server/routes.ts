@@ -455,6 +455,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Advanced Dahua operations endpoint
+  app.post("/api/test/dahua-advanced", async (req, res) => {
+    try {
+      const { action, userId, threshold } = req.body;
+      
+      let result;
+      switch (action) {
+        case 'records':
+          result = await dahuaService.getUnlockRecords();
+          break;
+        case 'capture':
+          if (!userId) {
+            return res.status(400).json({ error: 'userId required for capture action' });
+          }
+          result = await dahuaService.captureFaceForUser(userId);
+          break;
+        case 'threshold':
+          result = await dahuaService.setFaceRecognitionThreshold(threshold || 90);
+          break;
+        case 'liveness':
+          result = await dahuaService.enableLivenessDetection();
+          break;
+        default:
+          return res.status(400).json({ error: 'Invalid action. Use: records, capture, threshold, or liveness' });
+      }
+
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

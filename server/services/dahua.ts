@@ -141,6 +141,90 @@ export class DahuaService {
     }
   }
 
+  async getUnlockRecords(): Promise<DoorControlResult> {
+    console.log('Retrieving unlock records from Dahua device');
+    
+    const result = await this.makeRequest('/cgi-bin/recordFinder.cgi?action=find&name=AccessControlCardRec');
+    
+    if (result.success) {
+      console.log('✓ Unlock records retrieved successfully');
+      return {
+        success: true,
+        message: 'Unlock records retrieved successfully',
+        action: 'records'
+      };
+    } else {
+      console.error('Failed to get unlock records:', result.error);
+      return {
+        success: false,
+        message: `Failed to get unlock records: ${result.error}`
+      };
+    }
+  }
+
+  async captureFaceForUser(userId: string): Promise<DoorControlResult> {
+    console.log(`Capturing face for user ${userId}`);
+    
+    const result = await this.makeRequest(`/cgi-bin/accessControl.cgi?action=captureCmd&type=1&UserID=${userId}&heartbeat=5&timeout=10`);
+    
+    if (result.success) {
+      console.log(`✓ Face capture initiated for user ${userId}`);
+      return {
+        success: true,
+        message: `Face capture initiated for user ${userId}`,
+        action: 'capture'
+      };
+    } else {
+      console.error(`Failed to capture face for user ${userId}:`, result.error);
+      return {
+        success: false,
+        message: `Failed to capture face for user ${userId}: ${result.error}`
+      };
+    }
+  }
+
+  async setFaceRecognitionThreshold(threshold: number = 90): Promise<DoorControlResult> {
+    console.log(`Setting face recognition threshold to ${threshold}%`);
+    
+    const result = await this.makeRequest(`/cgi-bin/faceRecognitionServer.cgi?action=modifyGroup&groupID=10000&Similarity=${threshold}`);
+    
+    if (result.success) {
+      console.log(`✓ Face recognition threshold set to ${threshold}%`);
+      return {
+        success: true,
+        message: `Face recognition threshold set to ${threshold}%`,
+        action: 'threshold'
+      };
+    } else {
+      console.error(`Failed to set threshold to ${threshold}%:`, result.error);
+      return {
+        success: false,
+        message: `Failed to set threshold to ${threshold}%: ${result.error}`
+      };
+    }
+  }
+
+  async enableLivenessDetection(): Promise<DoorControlResult> {
+    console.log('Enabling liveness detection (anti-spoof)');
+    
+    const result = await this.makeRequest('/cgi-bin/configManager.cgi?action=setConfig&VideoAnalyseRule[0].Enable=true');
+    
+    if (result.success) {
+      console.log('✓ Liveness detection enabled successfully');
+      return {
+        success: true,
+        message: 'Liveness detection enabled successfully',
+        action: 'liveness'
+      };
+    } else {
+      console.error('Failed to enable liveness detection:', result.error);
+      return {
+        success: false,
+        message: `Failed to enable liveness detection: ${result.error}`
+      };
+    }
+  }
+
   async testConnection(): Promise<{ success: boolean; message: string }> {
     console.log(`Testing connection to Dahua device at ${this.config.host}:${this.config.port}`);
     
