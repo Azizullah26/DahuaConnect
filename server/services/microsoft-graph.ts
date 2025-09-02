@@ -20,11 +20,12 @@ export class MicrosoftGraphService {
   private graphScopes = ['https://graph.microsoft.com/.default'];
 
   constructor(config: MicrosoftGraphConfig) {
+    // Microsoft Graph config
     const msalConfig = {
       auth: {
-        clientId: config.clientId,
-        authority: `https://login.microsoftonline.com/${config.tenantId}`,
-        clientSecret: config.clientSecret
+        clientId: process.env.AZURE_CLIENT_ID || config.clientId,
+        authority: `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID || config.tenantId}`,
+        clientSecret: process.env.AZURE_CLIENT_SECRET || config.clientSecret
       }
     };
 
