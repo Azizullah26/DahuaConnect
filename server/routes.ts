@@ -23,7 +23,7 @@ const dahuaService = new DahuaService({
   host: process.env.DAHUA_HOST || '10.255.254.11',
   port: parseInt(process.env.DAHUA_PORT || '80'),
   username: process.env.DAHUA_USER || 'admin',
-  password: process.env.DAHUA_PASS || 'admin123'
+  password: process.env.DAHUA_PASS || 'P@ssw0rd@247#'
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {

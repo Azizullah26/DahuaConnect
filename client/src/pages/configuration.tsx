@@ -16,9 +16,12 @@ export default function Configuration() {
   
   // Dahua Configuration  
   const [dahuaHost, setDahuaHost] = useState("10.255.254.11");
-  const [dahuaPort, setDahuaPort] = useState(process.env.DAHUA_PORT || "80");
-  const [dahuaUser, setDahuaUser] = useState(process.env.DAHUA_USER || "admin");
-  const [dahuaPass, setDahuaPass] = useState("••••••••");
+  const [dahuaPort, setDahuaPort] = useState("80");
+  const [dahuaUser, setDahuaUser] = useState("admin");
+  const [dahuaPass, setDahuaPass] = useState("••••••••••••••••");
+  const [dahuaTcpPort, setDahuaTcpPort] = useState("37777");
+  const [dahuaHttpsPort, setDahuaHttpsPort] = useState("443");
+  const [dahuaRtspPort, setDahuaRtspPort] = useState("554");
   
   // Microsoft Graph Configuration
   const [azureClientId, setAzureClientId] = useState(process.env.AZURE_CLIENT_ID || "206217f2-eb5f-46f5-aa7e-f246c2a97ef5");
@@ -66,12 +69,12 @@ export default function Configuration() {
                   id="dahua-host"
                   value={dahuaHost}
                   onChange={(e) => setDahuaHost(e.target.value)}
-                  placeholder="192.168.1.100"
+                  placeholder="10.255.254.11"
                   data-testid="input-dahua-host"
                 />
               </div>
               <div>
-                <Label htmlFor="dahua-port">Port</Label>
+                <Label htmlFor="dahua-port">HTTP Port</Label>
                 <Input
                   id="dahua-port"
                   value={dahuaPort}
@@ -96,9 +99,9 @@ export default function Configuration() {
                   <Input
                     id="dahua-pass"
                     type={showSecrets ? "text" : "password"}
-                    value={showSecrets ? "admin123" : dahuaPass}
+                    value={showSecrets ? "P@ssw0rd@247#" : dahuaPass}
                     onChange={(e) => setDahuaPass(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="••••••••••••••••"
                     data-testid="input-dahua-pass"
                   />
                   <Button
@@ -112,6 +115,36 @@ export default function Configuration() {
                     {showSecrets ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
+              </div>
+              <div>
+                <Label htmlFor="dahua-tcp-port">TCP Port</Label>
+                <Input
+                  id="dahua-tcp-port"
+                  value={dahuaTcpPort}
+                  onChange={(e) => setDahuaTcpPort(e.target.value)}
+                  placeholder="37777"
+                  data-testid="input-dahua-tcp-port"
+                />
+              </div>
+              <div>
+                <Label htmlFor="dahua-https-port">HTTPS Port</Label>
+                <Input
+                  id="dahua-https-port"
+                  value={dahuaHttpsPort}
+                  onChange={(e) => setDahuaHttpsPort(e.target.value)}
+                  placeholder="443"
+                  data-testid="input-dahua-https-port"
+                />
+              </div>
+              <div>
+                <Label htmlFor="dahua-rtsp-port">RTSP Port</Label>
+                <Input
+                  id="dahua-rtsp-port"
+                  value={dahuaRtspPort}
+                  onChange={(e) => setDahuaRtspPort(e.target.value)}
+                  placeholder="554"
+                  data-testid="input-dahua-rtsp-port"
+                />
               </div>
             </div>
           </CardContent>
@@ -259,6 +292,9 @@ export default function Configuration() {
                 <div>DAHUA_PORT</div>
                 <div>DAHUA_USER</div>
                 <div>DAHUA_PASS</div>
+                <div>DAHUA_TCP_PORT</div>
+                <div>DAHUA_HTTPS_PORT</div>
+                <div>DAHUA_RTSP_PORT</div>
               </div>
             </div>
           </CardContent>
