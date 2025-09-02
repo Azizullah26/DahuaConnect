@@ -436,7 +436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('❌ Connection test failed:', error);
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'r'
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
