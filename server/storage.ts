@@ -61,7 +61,7 @@ export class MemStorage implements IStorage {
     // Default user mapping - based on your requirements
     const defaultUserMapping: UserMapping = {
       id: randomUUID(),
-      dahuaUserId: "12345",
+      dahuaUserId: "2689",
       email: "aziz@elrace.com", 
       name: "Aziz",
       createdAt: new Date(),

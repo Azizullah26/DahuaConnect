@@ -17,7 +17,7 @@ export default function TestEndpoints() {
   const { toast } = useToast();
   
   // Test states
-  const [webhookUserId, setWebhookUserId] = useState("12345");
+  const [webhookUserId, setWebhookUserId] = useState("2689");
   const [webhookDoor, setWebhookDoor] = useState("1");
   const [webhookEventCode, setWebhookEventCode] = useState("FaceRecognition");
   
@@ -28,7 +28,7 @@ export default function TestEndpoints() {
   const [doorAction, setDoorAction] = useState("open");
   
   const [advancedAction, setAdvancedAction] = useState("records");
-  const [captureUserId, setCaptureUserId] = useState("12345");
+  const [captureUserId, setCaptureUserId] = useState("2689");
   const [recognitionThreshold, setRecognitionThreshold] = useState("90");
   
   const [testResults, setTestResults] = useState<any>(null);
