@@ -14,8 +14,8 @@ export default function Configuration() {
   const { toast } = useToast();
   const [showSecrets, setShowSecrets] = useState(false);
   
-  // Dahua Configuration
-  const [dahuaHost, setDahuaHost] = useState(process.env.DAHUA_HOST || "192.168.1.100");
+  // Dahua Configuration  
+  const [dahuaHost, setDahuaHost] = useState("10.255.254.11");
   const [dahuaPort, setDahuaPort] = useState(process.env.DAHUA_PORT || "80");
   const [dahuaUser, setDahuaUser] = useState(process.env.DAHUA_USER || "admin");
   const [dahuaPass, setDahuaPass] = useState("••••••••");

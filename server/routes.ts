@@ -20,7 +20,7 @@ const graphService = new MicrosoftGraphService({
 });
 
 const dahuaService = new DahuaService({
-  host: process.env.DAHUA_HOST || '192.168.1.100',
+  host: process.env.DAHUA_HOST || '10.255.254.11',
   port: parseInt(process.env.DAHUA_PORT || '80'),
   username: process.env.DAHUA_USER || 'admin',
   password: process.env.DAHUA_PASS || 'admin123'
