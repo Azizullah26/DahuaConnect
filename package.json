@@ -11,7 +11,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
-    "@azure/msal-node": "^3.7.3",
+    "@azure/msal-node": "^2.6.6",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@microsoft/microsoft-graph-client": "^3.0.7",

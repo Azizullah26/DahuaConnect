@@ -45,11 +45,10 @@ export class MicrosoftGraphService {
 
   private async getGraphClient(): Promise<Client> {
     const accessToken = await this.getAccessToken();
+    
     return Client.init({
-      defaultVersion: 'v1.0',
-      debugLogging: false,
-      authProvider: (callback) => {
-        callback(null, accessToken);
+      authProvider: (done: any) => {
+        done(null, accessToken);
       }
     });
   }
