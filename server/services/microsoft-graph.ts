@@ -123,6 +123,86 @@ export class MicrosoftGraphService {
     }
   }
 
+  async checkActiveMeeting(userEmail: string, roomEmail: string): Promise<{hasActiveMeeting: boolean, meetingEnd?: string, meetingSubject?: string, eventId?: string}> {
+    try {
+      console.log(`🔍 Checking active meeting for ${userEmail} in room ${roomEmail}`);
+      
+      const graphClient = await this.getGraphClient();
+      const now = new Date();
+      const endTime = new Date(now.getTime() + 8 * 60 * 60 * 1000); // Next 8 hours
+      
+      // Format times for Graph API
+      const startTimeStr = now.toISOString();
+      const endTimeStr = endTime.toISOString();
+      
+      console.log(`📅 Checking active meetings from: ${startTimeStr} to ${endTimeStr}`);
+      
+      // Check room's calendar for current meetings
+      const roomEvents = await graphClient
+        .api(`/users/${roomEmail}/calendar/events`)
+        .filter(`start/dateTime le '${endTimeStr}' and end/dateTime ge '${startTimeStr}'`)
+        .select('id,subject,start,end,attendees,organizer')
+        .get();
+      
+      console.log(`📋 Found ${roomEvents.value?.length || 0} events in room ${roomEmail}`);
+      
+      // Find currently active meeting where user is organizer or attendee
+      const activeMeeting = roomEvents.value?.find((event: any) => {
+        const eventStart = new Date(event.start.dateTime);
+        const eventEnd = new Date(event.end.dateTime);
+        const isCurrentlyActive = now >= eventStart && now <= eventEnd;
+        
+        if (!isCurrentlyActive) return false;
+        
+        // Check if user is organizer
+        const isUserOrganizer = event.organizer?.emailAddress?.address?.toLowerCase() === userEmail.toLowerCase();
+        
+        // Check if user is attendee
+        const isUserAttendee = event.attendees?.some((attendee: any) => 
+          attendee.emailAddress?.address?.toLowerCase() === userEmail.toLowerCase()
+        );
+        
+        return isUserOrganizer || isUserAttendee;
+      });
+      
+      if (activeMeeting) {
+        const meetingEnd = new Date(activeMeeting.end.dateTime).toLocaleString();
+        console.log(`✅ Found active meeting for ${userEmail}: ${activeMeeting.subject} until ${meetingEnd}`);
+        
+        // Auto check-in: Update event body with check-in information
+        try {
+          const checkInTime = new Date().toISOString();
+          const updatedBody = {
+            contentType: 'text',
+            content: `${activeMeeting.body?.content || ''}\n\n✓ Auto check-in via face recognition at ${checkInTime} for ${userEmail}`
+          };
+
+          await graphClient
+            .api(`/users/${roomEmail}/calendar/events/${activeMeeting.id}`)
+            .patch({ body: updatedBody });
+
+          console.log(`✓ Auto check-in successful for ${userEmail} in active meeting`);
+        } catch (checkInError) {
+          console.error('❌ Auto check-in failed:', checkInError);
+        }
+        
+        return {
+          hasActiveMeeting: true,
+          meetingEnd,
+          meetingSubject: activeMeeting.subject,
+          eventId: activeMeeting.id
+        };
+      } else {
+        console.log(`❌ No active meeting found for ${userEmail} in room ${roomEmail}`);
+        return { hasActiveMeeting: false };
+      }
+      
+    } catch (error) {
+      console.error('❌ Error checking active meeting:', error);
+      return { hasActiveMeeting: false };
+    }
+  }
+
   async testConnection(): Promise<{ success: boolean; message: string }> {
     try {
       const accessToken = await this.getAccessToken();

@@ -243,8 +243,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.json(response);
         }
 
-        // Check Microsoft Graph for booking
-        const calendarResult = await graphService.checkExistingBooking(
+        // Check for active meeting where user is authorized
+        const activeMeeting = await graphService.checkActiveMeeting(
           userMapping.email, 
           roomMapping.roomEmail
         );
@@ -252,15 +252,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         response.userEmail = userMapping.email;
         response.roomEmail = roomMapping.roomEmail;
 
-        if (calendarResult.success && calendarResult.action === 'check-in') {
-          // User has valid booking - open door
+        if (activeMeeting.hasActiveMeeting) {
+          // User has active meeting - keep door open during meeting time
           const doorResult = await dahuaService.openDoor(door);
           
           response.accessGranted = true;
-          response.reason = 'Valid booking found - access granted';
-          response.eventId = calendarResult.eventId;
+          response.reason = `Active meeting access - door open until ${activeMeeting.meetingEnd}`;
+          response.eventId = activeMeeting.eventId;
+          response.meetingDetails = activeMeeting;
 
-          console.log(`✅ Access granted for ${userMapping.email} to ${roomMapping.roomEmail}`);
+          console.log(`✅ Meeting access granted for ${userMapping.email} - ${activeMeeting.meetingSubject} until ${activeMeeting.meetingEnd}`);
           
           await storage.createAccessLog({
             dahuaUserId: userId,
@@ -269,17 +270,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             roomEmail: roomMapping.roomEmail,
             eventType: code,
             accessGranted: true,
-            reason: 'valid-booking',
-            eventId: calendarResult.eventId,
-            metadata: { eventData, calendarResult, doorResult }
+            reason: 'active-meeting-access',
+            eventId: activeMeeting.eventId,
+            metadata: { eventData, activeMeeting, doorResult }
           });
 
         } else {
-          // No valid booking or user not authorized - deny access
+          // No active meeting for this user - deny access (even if they're registered in Dahua)
           response.accessGranted = false;
-          response.reason = calendarResult.reason || 'Access denied';
+          response.reason = `No active meeting found for ${userMapping.email} in ${roomMapping.roomEmail}`;
 
-          console.log(`❌ Access denied for ${userMapping.email} to ${roomMapping.roomEmail}: ${response.reason}`);
+          console.log(`❌ Meeting access denied for ${userMapping.email} - no active meeting in ${roomMapping.roomEmail}`);
           
           await storage.createAccessLog({
             dahuaUserId: userId,
