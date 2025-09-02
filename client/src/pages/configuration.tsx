@@ -24,8 +24,8 @@ export default function Configuration() {
   const [dahuaRtspPort, setDahuaRtspPort] = useState("554");
   
   // Microsoft Graph Configuration
-  const [azureClientId, setAzureClientId] = useState(process.env.AZURE_CLIENT_ID || "206217f2-eb5f-46f5-aa7e-f246c2a97ef5");
-  const [azureTenantId, setAzureTenantId] = useState(process.env.AZURE_TENANT_ID || "14a72467-3f25-4572-a535-3d5eddb00cc5");
+  const [azureClientId, setAzureClientId] = useState("206217f2-eb5f-46f5-aa7e-f246c2a97ef5");
+  const [azureTenantId, setAzureTenantId] = useState("14a72467-3f25-4572-a535-3d5eddb00cc5");
   const [azureClientSecret, setAzureClientSecret] = useState("••••••••••••••••••••••••••••••••");
   
   // System Settings
