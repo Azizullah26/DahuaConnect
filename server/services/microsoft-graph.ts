@@ -46,8 +46,10 @@ export class MicrosoftGraphService {
   private async getGraphClient(): Promise<Client> {
     const accessToken = await this.getAccessToken();
     return Client.init({
-      authProvider: {
-        getAccessToken: async () => accessToken
+      defaultVersion: 'v1.0',
+      debugLogging: false,
+      authProvider: (callback) => {
+        callback(null, accessToken);
       }
     });
   }

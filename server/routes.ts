@@ -388,7 +388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('📅 Direct calendar test requested:', { userEmail, roomEmail });
 
-      const result = await graphService.checkExistingBooking(userEmail, roomEmail);
+      const result = await graphService.checkActiveMeeting(userEmail, roomEmail);
 
       res.json({
         success: true,
