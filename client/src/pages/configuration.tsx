@@ -268,11 +268,11 @@ export default function Configuration() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Node Environment</span>
-                <Badge variant="outline">{process.env.NODE_ENV || 'development'}</Badge>
+                <Badge variant="outline">development</Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Server Port</span>
-                <Badge variant="outline">{process.env.PORT || '5000'}</Badge>
+                <Badge variant="outline">5000</Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Webhook Endpoint</span>
