@@ -201,8 +201,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Code: ${code}, Action: ${action}, Index: ${index}`);
 
         // Extract user ID and door information
-        const userId = data?.UserID || data?.userId || data?.PersonID || index.toString();
-        const door = data?.Door || data?.door || data?.ChannelID || index;
+        const userId = (data as any)?.UserID || (data as any)?.userId || (data as any)?.PersonID || index.toString();
+        const door = (data as any)?.Door || (data as any)?.door || (data as any)?.ChannelID || index;
         
         console.log(`Extracted - UserID: ${userId}, Door: ${door}`);
 
@@ -289,8 +289,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             roomEmail: roomMapping.roomEmail,
             eventType: code,
             accessGranted: false,
-            reason: calendarResult.action || 'access-denied',
-            metadata: { eventData, calendarResult }
+            reason: 'no-active-meeting',
+            metadata: { eventData, activeMeeting }
           });
         }
 
@@ -348,7 +348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        const calendarResult = await graphService.checkExistingBooking(
+        const activeMeeting = await graphService.checkActiveMeeting(
           userMapping.email, 
           roomMapping.roomEmail
         );
@@ -360,7 +360,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           result: {
             userEmail: userMapping.email,
             roomEmail: roomMapping.roomEmail,
-            calendarResult
+            activeMeeting
           }
         });
       } else {

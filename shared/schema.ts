@@ -100,6 +100,7 @@ export type AccessControlResponse = {
   timestamp: string;
   userEmail?: string;
   roomEmail?: string;
+  meetingDetails?: any;
 };
 
 export type DahuaEventData = {
