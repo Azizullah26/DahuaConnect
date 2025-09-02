@@ -406,10 +406,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/test/connection", async (req, res) => {
     try {
+      console.log('🧪 Testing Microsoft Graph API connection...');
+      
       const [dahuaTest, graphTest] = await Promise.all([
         dahuaService.testConnection(),
         graphService.testConnection()
       ]);
+
+      console.log('📊 Microsoft Graph API Response:', {
+        success: graphTest.success,
+        message: graphTest.message,
+        timestamp: new Date().toISOString()
+      });
 
       // Update system health
       await storage.updateSystemHealth('dahua', dahuaTest.success ? 'online' : 'offline', dahuaTest.message);
@@ -425,9 +433,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
     } catch (error) {
+      console.error('❌ Connection test failed:', error);
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error'r'
       });
     }
   });
