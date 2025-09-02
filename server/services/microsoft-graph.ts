@@ -46,10 +46,14 @@ export class MicrosoftGraphService {
   private async getGraphClient(): Promise<Client> {
     const accessToken = await this.getAccessToken();
     
-    return Client.init({
-      authProvider: (done: any) => {
-        done(null, accessToken);
+    const authProvider = {
+      getAccessToken: async () => {
+        return accessToken;
       }
+    };
+    
+    return Client.init({
+      authProvider: authProvider
     });
   }
 
@@ -138,12 +142,25 @@ export class MicrosoftGraphService {
       
       console.log(`📅 Checking active meetings from: ${startTimeStr} to ${endTimeStr}`);
       
-      // Check room's calendar for current meetings
-      const roomEvents = await graphClient
-        .api(`/users/${roomEmail}/calendar/events`)
-        .filter(`start/dateTime le '${endTimeStr}' and end/dateTime ge '${startTimeStr}'`)
-        .select('id,subject,start,end,attendees,organizer')
-        .get();
+      // Check room's calendar for current meetings using direct API call
+      const accessToken = await this.getAccessToken();
+      const filter = `start/dateTime le '${endTimeStr}' and end/dateTime ge '${startTimeStr}'`;
+      const select = 'id,subject,start,end,attendees,organizer';
+      const url = `https://graph.microsoft.com/v1.0/users/${roomEmail}/calendar/events?$filter=${encodeURIComponent(filter)}&$select=${select}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        console.error(`Graph API error: ${response.status} ${response.statusText}`);
+        return { hasActiveMeeting: false };
+      }
+
+      const roomEvents = await response.json();
       
       console.log(`📋 Found ${roomEvents.value?.length || 0} events in room ${roomEmail}`);
       
@@ -178,9 +195,14 @@ export class MicrosoftGraphService {
             content: `${activeMeeting.body?.content || ''}\n\n✓ Auto check-in via face recognition at ${checkInTime} for ${userEmail}`
           };
 
-          await graphClient
-            .api(`/users/${roomEmail}/calendar/events/${activeMeeting.id}`)
-            .patch({ body: updatedBody });
+          const patchResponse = await fetch(`https://graph.microsoft.com/v1.0/users/${roomEmail}/calendar/events/${activeMeeting.id}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ body: updatedBody })
+          });
 
           console.log(`✓ Auto check-in successful for ${userEmail} in active meeting`);
         } catch (checkInError) {
