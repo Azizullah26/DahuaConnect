@@ -1,0 +1,236 @@
+Middleware Flow
+1. Face Scan at Dahua Device
+
+User goes to door → Dahua device scans face.
+
+Device recognizes user → triggers face recognition event.
+
+Dahua pushes webhook event (JSON) to your middleware /dahua-webhook.
+
+2. Middleware Receives Event
+
+Middleware receives the Dahua event body.
+
+Extracts:
+
+UserID (e.g., 2689)
+
+Channel (door index → maps to room)
+
+Middleware looks up:
+
+UserID → Email (from userMap)
+
+Channel → Room Email (from roomMap)
+
+3. Check Booking in Outlook (Microsoft Graph API)
+
+Middleware authenticates with MSAL → Microsoft Graph API.
+
+Checks if userEmail is an attendee of a meeting in roomEmail right now (±15 minutes).
+
+If booking exists & user is attendee:
+✅ Valid → mark auto check-in in the event.
+
+If no booking:
+📅 Middleware can auto-create a reservation for the user in that room.
+
+If booking exists but user not attendee:
+❌ Access denied.
+
+4. Door Control (via Dahua API)
+
+If booking is valid → Middleware calls Dahua API:
+
+openDoor(channel) → unlock door remotely.
+
+If denied → Door stays locked.
+
+5. Response Back
+
+Middleware logs result.
+
+Sends JSON response to Dahua (success/failure).
+
+Can also send back details:
+
+accessGranted: true/false
+
+eventId (if matched/created in Outlook)
+
+timestamp
+
+🔗 Summary Flow
+
+User → Dahua Face Scan → Dahua Event → Middleware → Microsoft Graph (Check/Reserve Meeting) → Dahua Door Open/Denied
+
+👉 Do you want me to draw a simple diagram (flowchart) of this process so it’s easier to show your team/client?
+
+You said:
+mention how middle ware access dahua device if need apis so write that apis and how it will work 
+ChatGPT said:
+
+Perfect question ✅
+
+Let’s connect the dots and explain how the middleware talks to Dahua devices and which APIs are involved.
+
+🔄 Middleware Access to Dahua Devices
+
+The middleware uses two-way communication with Dahua:
+
+1️⃣ Dahua → Middleware (Push / Events)
+
+Webhook subscription is configured so Dahua automatically pushes face recognition events to middleware.
+
+📡 API to configure webhook:
+
+GET http://<device-ip>/cgi-bin/configManager.cgi?action=setConfig&
+  VSP_CGI.ServiceStart=true&
+  VSP_CGI.AutoRegister.Enable=true&
+  VSP_CGI.AutoRegister.Servers[0].Address=<middleware-ip>&
+  VSP_CGI.AutoRegister.Servers[0].Port=8080
+
+
+👉 This means: whenever someone scans face → Dahua calls http://<middleware>/dahua-webhook.
+
+2️⃣ Middleware → Dahua (Control / Status)
+
+Once middleware confirms the booking via Microsoft Graph API, it needs to control the door.
+For that, it calls Dahua’s Access Control APIs (using Digest Authentication).
+
+🚪 Door Control APIs
+
+Open Door (unlock)
+
+GET http://<device-ip>/cgi-bin/accessControl.cgi?action=openDoor&channel=1&Type=Remote
+
+
+Close Door (lock)
+
+GET http://<device-ip>/cgi-bin/accessControl.cgi?action=closeDoor&channel=1&Type=Remote
+
+
+Get Door Status
+
+GET http://<device-ip>/cgi-bin/accessControl.cgi?action=getDoorStatus&channel=1
+
+
+➡️ channel=1 → Door 0, channel=2 → Door 1, etc.
+➡️ Middleware calls these when it needs to unlock/lock/check status.
+
+3️⃣ Optional APIs Middleware May Use
+
+Get Unlock Records (logs of past door activity)
+
+GET http://<device-ip>/cgi-bin/recordFinder.cgi?action=find&name=AccessControlCardRec
+
+
+Get Face Capture for User
+
+GET http://<device-ip>/cgi-bin/accessControl.cgi?action=captureCmd&type=1&UserID=2689&heartbeat=5&timeout=10
+
+
+Set Face Recognition Threshold (e.g., similarity score)
+
+GET http://<device-ip>/cgi-bin/faceRecognitionServer.cgi?action=modifyGroup&groupID=10000&Similarity=90
+
+
+Enable Liveness Detection (anti-spoof check)
+
+GET http://<device-ip>/cgi-bin/configManager.cgi?action=setConfig&VideoAnalyseRule[0].Enable=true
+
+🔗 Full Process Example
+
+User scans face → Dahua pushes event → /dahua-webhook on middleware.
+
+Middleware extracts UserID & Door Channel.
+
+Middleware queries Microsoft Graph API for meeting validity.
+
+If valid booking → Middleware calls:
+
+GET http://10.255.254.11/cgi-bin/accessControl.cgi?action=openDoor&channel=1&Type=Remote
+
+
+Door unlocks.
+
+If invalid → Middleware does not call Dahua API → door stays locked.
+
+⚡ In short:
+
+Dahua → Middleware = Webhook events
+
+Middleware → Dahua = Door control/status APIs
+
+👉 Do you want me to embed these Dahua API calls directly inside your middleware code (replacing the current Axios calls with Digest Auth)? That way your /test-door and /dahua-webhook will work against real Dahua devices.
+
+You said:
+also add if the person face scane successfully and he did not book the meeting so keep the ddoor close . donot open 
+ChatGPT said:
+
+Got it ✅ — you want to deny access if no meeting is booked, even if the face is recognized.
+
+Right now, your middleware code has this logic:
+
+If booking exists → ✅ Open door.
+
+If no booking → 📅 Create new reservation and open door.
+
+If user not attendee → ❌ Deny.
+
+🔧 Change Required
+
+We must remove the auto-reservation step.
+That means:
+
+If no booking exists → ❌ Door stays locked.
+
+If user is attendee in existing booking → ✅ Door opens.
+
+If user not attendee → ❌ Door stays locked.
+
+🔄 Updated Middleware Flow
+
+Dahua → Middleware webhook.
+
+Middleware extracts UserID + Door.
+
+Middleware checks Graph API for active booking in that room.
+
+✅ If user is attendee → call Dahua openDoor API.
+
+❌ If no booking OR user not attendee → don’t call openDoor.
+
+Middleware responds with accessGranted: true/false.
+
+⚡ Code Fix (inside handleCalendarAction)
+
+Replace this section:
+
+} else if (bookingResult.action === "no-booking") {
+  // If no existing booking found, create a new reservation
+  calendarResult = await createNewReservation(
+    userEmail,
+    roomEmail,
+    accessToken,
+    eventCode,
+  );
+} else {
+  // If user is not authorized for existing booking
+  calendarResult = bookingResult;
+}
+
+
+with this:
+
+} else if (bookingResult.action === "no-booking") {
+  // Do not auto-create reservation, deny access
+  calendarResult = {
+    success: false,
+    action: "no-booking",
+    reason: "No existing booking found, access denied",
+  };
+} else {
+  // User is not authorized for existing booking
+  calendarResult = bookingResult;
+}

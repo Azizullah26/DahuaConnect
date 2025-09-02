@@ -1,0 +1,426 @@
+require('dotenv').config();
+const express = require('express');
+const { ConfidentialClientApplication } = require('@azure/msal-node');
+const graph = require('@microsoft/microsoft-graph-client');
+
+const app = express();
+app.use(express.json());
+
+// Environment variables with fallbacks
+const dahuaConfig = {
+  host: process.env.DAHUA_HOST || '192.168.1.100',
+  port: parseInt(process.env.DAHUA_PORT) || 80,
+  user: process.env.DAHUA_USER || 'admin',
+  pass: process.env.DAHUA_PASS || 'admin123',
+  log: process.env.NODE_ENV !== 'production'
+};
+
+console.log('Dahua webhook endpoint will be available at /dahua-webhook');
+
+// Microsoft Graph configuration
+const msalConfig = {
+  auth: {
+    clientId: process.env.AZURE_CLIENT_ID || '206217f2-eb5f-46f5-aa7e-f246c2a97ef5',
+    authority: `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID || '14a72467-3f25-4572-a535-3d5eddb00cc5'}`,
+    clientSecret: process.env.AZURE_CLIENT_SECRET || '4pT8Q~zhZE_PFKf9nnZCrLNJqqZpYaotFqebTcPu'
+  }
+};
+
+const cca = new ConfidentialClientApplication(msalConfig);
+const graphScopes = ['https://graph.microsoft.com/.default'];
+
+// User mappings - Dahua UserID to email address
+const userMap = {
+  '12345': 'aziz@elrace.com',
+  // Add more users as needed
+  // '67890': 'user2@elrace.com',
+  // '54321': 'user3@elrace.com',
+};
+
+// Room mappings - Door/Index to room email
+const roomMap = {
+  1: 'Room1@elrace.com',
+  2: 'Room2@elrace.com',
+  3: 'Room3@elrace.com',
+  4: 'Room4@elrace.com'
+};
+
+// Function to get Microsoft Graph access token
+async function getGraphAccessToken() {
+  try {
+    const tokenResponse = await cca.acquireTokenByClientCredential({ 
+      scopes: graphScopes 
+    });
+    return tokenResponse.accessToken;
+  } catch (error) {
+    console.error('Failed to acquire access token:', error.message);
+    throw new Error('Authentication failed');
+  }
+}
+
+// Function to check for existing bookings and handle check-in
+async function checkExistingBooking(userEmail, roomEmail, graphClient) {
+  try {
+    const now = new Date();
+    const startTime = new Date(now.getTime() - 15 * 60 * 1000).toISOString(); // 15 minutes before now
+    const endTime = new Date(now.getTime() + 15 * 60 * 1000).toISOString(); // 15 minutes after now
+
+    console.log(`Checking for existing bookings for ${userEmail} in ${roomEmail} between ${startTime} and ${endTime}`);
+
+    const events = await graphClient
+      .api(`/users/${roomEmail}/calendar/events`)
+      .filter(`start/dateTime le '${endTime}' and end/dateTime ge '${startTime}'`)
+      .select('id,subject,start,end,attendees,body')
+      .get();
+
+    if (events.value && events.value.length > 0) {
+      console.log(`Found ${events.value.length} overlapping events`);
+      
+      for (const event of events.value) {
+        const isUserAttendee = event.attendees.some(
+          att => att.emailAddress.address.toLowerCase() === userEmail.toLowerCase()
+        );
+
+        if (isUserAttendee) {
+          // Auto check-in: Update event body with check-in information
+          const checkInTime = new Date().toISOString();
+          const updatedBody = {
+            contentType: 'text',
+            content: `${event.body?.content || ''}\n\n✓ Auto check-in via face recognition at ${checkInTime} for ${userEmail}`
+          };
+
+          await graphClient
+            .api(`/users/${roomEmail}/calendar/events/${event.id}`)
+            .patch({ body: updatedBody });
+
+          console.log(`✓ Auto check-in successful for ${userEmail} in ${roomEmail} (Event: ${event.subject})`);
+          return { success: true, action: 'check-in', eventId: event.id, eventSubject: event.subject };
+        }
+      }
+
+      console.log(`User ${userEmail} not found as attendee in any overlapping booking for ${roomEmail}`);
+      return { success: false, action: 'unauthorized', reason: 'User not authorized for existing booking' };
+    }
+
+    console.log(`No existing bookings found for ${roomEmail} in the current time window`);
+    return { success: false, action: 'no-booking', reason: 'No existing booking found' };
+
+  } catch (error) {
+    console.error('Error checking existing bookings:', error.message);
+    throw error;
+  }
+}
+
+// Function to create a new reservation
+async function createNewReservation(userEmail, roomEmail, graphClient, eventCode) {
+  try {
+    const now = new Date();
+    const endTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
+
+    const newEvent = {
+      subject: `Auto Reservation - ${roomEmail.split('@')[0]}`,
+      start: {
+        dateTime: now.toISOString(),
+        timeZone: 'UTC'
+      },
+      end: {
+        dateTime: endTime.toISOString(),
+        timeZone: 'UTC'
+      },
+      location: {
+        displayName: roomEmail.split('@')[0]
+      },
+      body: {
+        contentType: 'text',
+        content: `Automatically created reservation via ${eventCode} face recognition system.\nCreated at: ${now.toISOString()}\nUser: ${userEmail}`
+      },
+      attendees: [
+        {
+          emailAddress: {
+            address: userEmail,
+            name: userEmail.split('@')[0]
+          },
+          type: 'required'
+        },
+        {
+          emailAddress: {
+            address: roomEmail,
+            name: roomEmail.split('@')[0]
+          },
+          type: 'resource'
+        }
+      ]
+    };
+
+    const createdEvent = await graphClient
+      .api(`/users/${roomEmail}/calendar/events`)
+      .post(newEvent);
+
+    console.log(`✓ New reservation created for ${userEmail} in ${roomEmail} (Event ID: ${createdEvent.id})`);
+    return { 
+      success: true, 
+      action: 'reservation-created', 
+      eventId: createdEvent.id,
+      eventSubject: newEvent.subject,
+      startTime: now.toISOString(),
+      endTime: endTime.toISOString()
+    };
+
+  } catch (error) {
+    console.error('Error creating new reservation:', error.message);
+    throw error;
+  }
+}
+
+// Main function to handle calendar actions
+async function handleCalendarAction(userEmail, roomEmail, eventCode) {
+  try {
+    console.log(`\n=== Processing calendar action ===`);
+    console.log(`User: ${userEmail}`);
+    console.log(`Room: ${roomEmail}`);
+    console.log(`Event Code: ${eventCode}`);
+    console.log(`Timestamp: ${new Date().toISOString()}`);
+
+    const accessToken = await getGraphAccessToken();
+    const graphClient = graph.Client.init({
+      authProvider: {
+        getAccessToken: async () => accessToken
+      }
+    });
+
+    // First, check for existing bookings
+    const bookingResult = await checkExistingBooking(userEmail, roomEmail, graphClient);
+
+    if (bookingResult.success) {
+      return bookingResult;
+    }
+
+    // If no existing booking found, create a new reservation
+    if (bookingResult.action === 'no-booking') {
+      return await createNewReservation(userEmail, roomEmail, graphClient, eventCode);
+    }
+
+    // If user is not authorized for existing booking, log and return
+    return bookingResult;
+
+  } catch (error) {
+    console.error('Error in handleCalendarAction:', error.message);
+    return { 
+      success: false, 
+      action: 'error', 
+      error: error.message 
+    };
+  }
+}
+
+// Dahua webhook endpoint for receiving events
+app.post('/dahua-webhook', async (req, res) => {
+  try {
+    console.log(`\n🔔 Dahua webhook event received:`);
+    console.log('Headers:', req.headers);
+    console.log('Body:', req.body);
+
+    // Parse Dahua event data
+    const eventData = req.body;
+    const code = eventData.AlarmType || eventData.code || 'FaceRecognition';
+    const action = eventData.Action || eventData.action || 'Start';
+    const index = eventData.ChannelID || eventData.index || eventData.door || 1;
+    const data = eventData.Data || eventData;
+
+    if (action === 'Start' && (code === 'FaceRecognition' || code === 'AccessControl')) {
+      console.log(`Code: ${code}`);
+      console.log(`Action: ${action}`);
+      console.log(`Index: ${index}`);
+      console.log(`Data:`, data);
+
+      // Extract user ID and door information
+      const userId = data?.UserID || data?.userId || data?.PersonID || index.toString();
+      const door = data?.Door || data?.door || data?.ChannelID || index;
+      
+      console.log(`Extracted - UserID: ${userId}, Door: ${door}`);
+
+      const userEmail = userMap[userId];
+      const roomEmail = roomMap[door];
+
+      if (!userEmail) {
+        console.log(`⚠️ User ID ${userId} not mapped to any email address`);
+        return res.json({ success: true, message: 'User not mapped' });
+      }
+
+      if (!roomEmail) {
+        console.log(`⚠️ Door ${door} not mapped to any room email`);
+        return res.json({ success: true, message: 'Room not mapped' });
+      }
+
+      // Process the calendar action
+      const result = await handleCalendarAction(userEmail, roomEmail, code);
+      
+      console.log(`📊 Result:`, result);
+      console.log(`=== End processing ===\n`);
+
+      res.json({ success: true, result: result });
+    } else {
+      res.json({ success: true, message: 'Event ignored' });
+    }
+  } catch (error) {
+    console.error('Error processing Dahua webhook:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    dahua_webhook_enabled: true,
+    environment: {
+      node_env: process.env.NODE_ENV || 'development',
+      port: process.env.PORT || 5000
+    }
+  });
+});
+
+// Test endpoint for manual event simulation
+app.post('/test-event', async (req, res) => {
+  try {
+    const { 
+      code = 'FaceRecognition', 
+      action = 'Start', 
+      index = 1, 
+      data = {} 
+    } = req.body;
+
+    console.log('📧 Manual test event received:', { code, action, index, data });
+
+    // Simulate processing the event directly
+    if (action === 'Start' && (code === 'FaceRecognition' || code === 'AccessControl')) {
+      const userId = data?.UserID || data?.userId || index.toString();
+      const door = data?.Door || data?.door || index;
+      
+      const userEmail = userMap[userId];
+      const roomEmail = roomMap[door];
+
+      if (!userEmail || !roomEmail) {
+        return res.json({ 
+          success: false, 
+          error: 'User or room not mapped',
+          userEmail,
+          roomEmail
+        });
+      }
+
+      const result = await handleCalendarAction(userEmail, roomEmail, code);
+      
+      res.json({ 
+        success: true, 
+        message: 'Test event processed successfully',
+        event: { code, action, index, data },
+        result: result
+      });
+    } else {
+      res.json({ 
+        success: true, 
+        message: 'Test event received but ignored (not a face recognition start event)',
+        event: { code, action, index, data }
+      });
+    }
+  } catch (error) {
+    console.error('Error in test endpoint:', error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// Direct calendar test endpoint
+app.post('/test-calendar', async (req, res) => {
+  try {
+    const {
+      userEmail = 'aziz@elrace.com',
+      roomEmail = 'Room1@elrace.com',
+      eventCode = 'FaceRecognition'
+    } = req.body;
+
+    console.log('📅 Direct calendar test requested:', { userEmail, roomEmail, eventCode });
+
+    const result = await handleCalendarAction(userEmail, roomEmail, eventCode);
+
+    res.json({
+      success: true,
+      result: result
+    });
+
+  } catch (error) {
+    console.error('Error in calendar test:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Get current mappings endpoint
+app.get('/mappings', (req, res) => {
+  res.json({
+    users: userMap,
+    rooms: roomMap
+  });
+});
+
+// Add user mapping endpoint
+app.post('/mappings/user', (req, res) => {
+  try {
+    const { userId, email } = req.body;
+    
+    if (!userId || !email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Both userId and email are required'
+      });
+    }
+
+    userMap[userId] = email;
+    
+    res.json({
+      success: true,
+      message: `User mapping added: ${userId} -> ${email}`,
+      userMap: userMap
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Error handling middleware
+app.use((error, req, res, next) => {
+  console.error('Unhandled error:', error);
+  res.status(500).json({
+    success: false,
+    error: 'Internal server error',
+    message: error.message
+  });
+});
+
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n🚀 Dahua-Microsoft Graph Middleware Server`);
+  console.log(`📡 Server running on port ${PORT}`);
+  console.log(`🌐 Server bound to 0.0.0.0:${PORT}`);
+  console.log(`🏢 Configured for ${Object.keys(roomMap).length} rooms`);
+  console.log(`👥 Configured for ${Object.keys(userMap).length} users`);
+  console.log(`⏰ Started at: ${new Date().toISOString()}\n`);
+  
+  console.log('📋 Available endpoints:');
+  console.log('  GET  /health - Health check');
+  console.log('  GET  /mappings - View current mappings');
+  console.log('  POST /dahua-webhook - Dahua device webhook endpoint');
+  console.log('  POST /test-event - Simulate Dahua event');
+  console.log('  POST /test-calendar - Test calendar integration directly');
+  console.log('  POST /mappings/user - Add user mapping\n');
+});
