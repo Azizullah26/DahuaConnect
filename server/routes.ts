@@ -21,15 +21,15 @@ const graphService = new MicrosoftGraphService({
 
 // Configure all Dahua devices for different rooms
 const dahuaDeviceConfigs = [
-  { host: '10.255.254.8', port: 80, roomEmail: 'room1@elrace.com' },
-  { host: '10.255.254.9', port: 80, roomEmail: 'room2@elrace.com' },
-  { host: '10.255.254.10', port: 80, roomEmail: 'room3@elrace.com' },
-  { host: '10.255.254.11', port: 80, roomEmail: 'room4@elrace.com' }
+  { host: '10.255.254.8', port: 443, roomEmail: 'room1@elrace.com' },
+  { host: '10.255.254.9', port: 443, roomEmail: 'room2@elrace.com' },
+  { host: '10.255.254.10', port: 443, roomEmail: 'room3@elrace.com' },
+  { host: '10.255.254.11', port: 443, roomEmail: 'room4@elrace.com' }
 ];
 
 const dahuaService = new DahuaService({
   host: process.env.DAHUA_HOST || '10.255.254.11',
-  port: parseInt(process.env.DAHUA_PORT || '80'),
+  port: parseInt(process.env.DAHUA_PORT || '443'),
   username: process.env.DAHUA_USER || 'admin',
   password: process.env.DAHUA_PASS || 'P@ssw0rd@247#'
 }, dahuaDeviceConfigs);

@@ -64,7 +64,8 @@ export class DahuaService {
   private async makeRequest(path: string, method: string = 'GET', deviceHost?: string, devicePort?: number, body?: string, contentType?: string): Promise<any> {
     const host = deviceHost || this.config.host;
     const port = devicePort || this.config.port;
-    const url = `http://${host}:${port}${path}`;
+    const protocol = port === 443 ? 'https' : 'http';
+    const url = `${protocol}://${host}:${port}${path}`;
     
     try {
       const headers: Record<string, string> = {
@@ -76,11 +77,21 @@ export class DahuaService {
       }
       
       // First request to get authentication challenge
-      const initialResponse = await fetch(url, { 
+      const fetchOptions: any = {
         method,
         headers: body ? headers : undefined,
         body
-      });
+      };
+      
+      // Handle HTTPS with self-signed certificates
+      if (protocol === 'https') {
+        const { Agent } = await import('https');
+        fetchOptions.agent = new Agent({
+          rejectUnauthorized: false
+        });
+      }
+      
+      const initialResponse = await fetch(url, fetchOptions);
       
       if (initialResponse.status === 401) {
         const wwwAuth = initialResponse.headers.get('WWW-Authenticate');
@@ -125,14 +136,24 @@ export class DahuaService {
           }
           
           // Retry with authentication
-          const authResponse = await fetch(url, {
+          const authFetchOptions: any = {
             method,
             headers: {
               ...headers,
               'Authorization': authHeader
             },
             body
-          });
+          };
+          
+          // Handle HTTPS with self-signed certificates
+          if (protocol === 'https') {
+            const { Agent } = await import('https');
+            authFetchOptions.agent = new Agent({
+              rejectUnauthorized: false
+            });
+          }
+          
+          const authResponse = await fetch(url, authFetchOptions);
           
           if (authResponse.ok) {
             const text = await authResponse.text();
