@@ -1,0 +1,73 @@
+**Network Settings**
+
+**NIC Settings (NIC 1):**
+*   **Mode:** DHCP / Static (Static selected)
+*   **MAC Address:** f8:ce:07:e3:a6:10
+*   **IP Version:** IPv4
+*   **IP Address:** 10.255.254.8
+*   **Subnet Mask:** 255.255.252.0
+*   **Default Gateway:** 10.255.254.1
+*   **Preferred DNS:** 10.183.146.232
+*   **Alternate DNS:** 213.42.20.20
+*   **MTU:** 1500
+*   **Transmission Mode:** Multicast / Unicast (Unicast selected)
+*   **Buttons:** Apply, Refresh, Default
+
+---
+
+**Wi-Fi Settings:**
+*   **Mode:** DHCP / Static (Static selected)
+*   **IP Address:** 192.168.0.108
+*   **Subnet Mask:** 255.255.0.0
+*   **Default Gateway:** 192.168.0.1
+*   **Buttons:** Apply, Refresh
+*   **Wi-Fi Network List:**
+    *   Name
+    *   Signal Strength
+
+---
+
+**Port Settings:**
+*   **Max Connection:** 50 (Range: 1-50)
+*   **TCP Port:** 37777 (Range: 1025-65534)
+*   **HTTP Port:** 80
+*   **HTTPS Port:** 443
+*   **RTSP Port:** 554
+*   **Buttons:** Apply, Refresh, Default
+
+---
+
+**Private Protocol Authentication Mode:**
+*   **Security Mode (Recommended)**
+*   **Private Protocol:** "Before enabling private protocol TLS, make sure that the corresponding device or software supports this function."
+*   **TLSv1.1**
+*   **LIDP**
+*   **Buttons:** Apply, Refresh, Default
+
+**Note:** "For easy access to our after-sales service, enable this function. If the device has any trouble performing functions, such as updating, the system will automatically enable this function."
+
+---
+
+**Auto Registration Table:**
+*   **Headers:** Device ID, Domain Name, Host IP, Port, HTTPS, Enable, Operation
+*   **Data:** none, --, 10.35.254.8, 80, [HTTPS option], [Enable option]
+
+---
+
+**Push Person Info Settings:**
+*   **Upload Mode:** Enable
+*   **Buttons:** Add, Delete
+*   **Protocol:** HTTP
+*   **Table No.:** 1
+*   **Buttons:** Apply, Refresh, Default
+*   **Configuration:**
+    *   **IP/Domain Name:** `https://corriddleware.ngtli.a...` (URL truncated)
+    *   **Port:** 80
+    *   **HTTPS** (option)
+    *   **Path**
+    *   **Authorization**
+    *   **Data to Push:** Person Info, Unlock Record...
+*   **Status:** Active
+*   **Authentication**
+*   **Event Type**
+*   **Buttons:** Test, Delete
