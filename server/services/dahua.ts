@@ -35,67 +35,126 @@ export class DahuaService {
     });
   }
 
-  private generateDigestAuth(username: string, password: string, realm: string, uri: string, nonce: string, method: string = 'GET'): string {
-    const ha1 = crypto.createHash('md5').update(`${username}:${realm}:${password}`).digest('hex');
-    const ha2 = crypto.createHash('md5').update(`${method}:${uri}`).digest('hex');
-    const response = crypto.createHash('md5').update(`${ha1}:${nonce}:${ha2}`).digest('hex');
-    
-    return `Digest username="${username}", realm="${realm}", nonce="${nonce}", uri="${uri}", response="${response}"`;
+  // Helper method to get device configuration by room email
+  getDeviceByRoom(roomEmail: string): DahuaDeviceConfig | undefined {
+    return this.devices.get(roomEmail);
   }
 
-  private async makeRequest(path: string, method: string = 'GET', deviceHost?: string, devicePort?: number): Promise<any> {
+  private generateDigestAuth(username: string, password: string, realm: string, uri: string, nonce: string, method: string = 'GET', qop?: string, nc?: string, cnonce?: string): string {
+    const ha1 = crypto.createHash('md5').update(`${username}:${realm}:${password}`).digest('hex');
+    const ha2 = crypto.createHash('md5').update(`${method}:${uri}`).digest('hex');
+    
+    let response: string;
+    let authString = `Digest username="${username}", realm="${realm}", nonce="${nonce}", uri="${uri}"`;
+    
+    if (qop) {
+      // RFC 2617 with qop
+      const responseHash = crypto.createHash('md5').update(`${ha1}:${nonce}:${nc}:${cnonce}:${qop}:${ha2}`).digest('hex');
+      response = responseHash;
+      authString += `, qop=${qop}, nc=${nc}, cnonce="${cnonce}", response="${response}"`;
+    } else {
+      // RFC 2069 basic digest
+      response = crypto.createHash('md5').update(`${ha1}:${nonce}:${ha2}`).digest('hex');
+      authString += `, response="${response}"`;
+    }
+    
+    return authString;
+  }
+
+  private async makeRequest(path: string, method: string = 'GET', deviceHost?: string, devicePort?: number, body?: string, contentType?: string): Promise<any> {
     const host = deviceHost || this.config.host;
     const port = devicePort || this.config.port;
     const url = `http://${host}:${port}${path}`;
     
     try {
+      const headers: Record<string, string> = {
+        'User-Agent': 'Dahua/3.0'
+      };
+      
+      if (contentType) {
+        headers['Content-Type'] = contentType;
+      }
+      
       // First request to get authentication challenge
-      const initialResponse = await fetch(url, { method });
+      const initialResponse = await fetch(url, { 
+        method,
+        headers: body ? headers : undefined,
+        body
+      });
       
       if (initialResponse.status === 401) {
         const wwwAuth = initialResponse.headers.get('WWW-Authenticate');
         if (wwwAuth && wwwAuth.includes('Digest')) {
-          // Parse digest challenge
+          // Parse digest challenge with enhanced parsing
           const realm = wwwAuth.match(/realm="([^"]+)"/)?.[1] || '';
           const nonce = wwwAuth.match(/nonce="([^"]+)"/)?.[1] || '';
+          const qop = wwwAuth.match(/qop="([^"]+)"/)?.[1];
+          const opaque = wwwAuth.match(/opaque="([^"]+)"/)?.[1];
           
-          // Create digest auth header
-          const authHeader = this.generateDigestAuth(
-            this.config.username,
-            this.config.password,
-            realm,
-            path,
-            nonce,
-            method
-          );
+          let authHeader: string;
+          
+          if (qop) {
+            // Enhanced auth with qop
+            const nc = '00000001';
+            const cnonce = crypto.randomBytes(8).toString('hex');
+            authHeader = this.generateDigestAuth(
+              this.config.username,
+              this.config.password,
+              realm,
+              path,
+              nonce,
+              method,
+              qop,
+              nc,
+              cnonce
+            );
+            
+            if (opaque) {
+              authHeader += `, opaque="${opaque}"`;
+            }
+          } else {
+            // Basic digest auth
+            authHeader = this.generateDigestAuth(
+              this.config.username,
+              this.config.password,
+              realm,
+              path,
+              nonce,
+              method
+            );
+          }
           
           // Retry with authentication
           const authResponse = await fetch(url, {
             method,
             headers: {
+              ...headers,
               'Authorization': authHeader
-            }
+            },
+            body
           });
           
           if (authResponse.ok) {
             const text = await authResponse.text();
-            return { success: true, data: text };
+            return { success: true, data: text, status: authResponse.status };
           } else {
-            return { success: false, error: `HTTP ${authResponse.status}: ${authResponse.statusText}` };
+            const errorText = await authResponse.text().catch(() => 'Unknown error');
+            return { success: false, error: `HTTP ${authResponse.status}: ${authResponse.statusText}`, details: errorText };
           }
         }
       } else if (initialResponse.ok) {
         const text = await initialResponse.text();
-        return { success: true, data: text };
+        return { success: true, data: text, status: initialResponse.status };
       }
       
-      return { success: false, error: `HTTP ${initialResponse.status}: ${initialResponse.statusText}` };
+      const errorText = await initialResponse.text().catch(() => 'Unknown error');
+      return { success: false, error: `HTTP ${initialResponse.status}: ${initialResponse.statusText}`, details: errorText };
     } catch (error) {
       return { success: false, error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}` };
     }
   }
 
-  async openDoor(channel: number, roomEmail?: string): Promise<DoorControlResult> {
+  async openDoor(channel: number, roomEmail?: string, duration?: number): Promise<DoorControlResult> {
     console.log(`Attempting to open door on channel ${channel} for room ${roomEmail || 'default'}`);
     
     let deviceHost, devicePort;
@@ -106,20 +165,32 @@ export class DahuaService {
       console.log(`Using device ${deviceHost}:${devicePort} for room ${roomEmail}`);
     }
     
-    const result = await this.makeRequest(
-      `/cgi-bin/accessControl.cgi?action=openDoor&channel=${channel}&Type=Remote`,
-      'GET',
-      deviceHost,
-      devicePort
-    );
+    // Enhanced door control with optional duration parameter
+    let endpoint = `/cgi-bin/accessControl.cgi?action=openDoor&channel=${channel}&Type=Remote`;
+    if (duration) {
+      endpoint += `&time=${duration}`; // Duration in seconds
+    }
+    
+    const result = await this.makeRequest(endpoint, 'GET', deviceHost, devicePort);
     
     if (result.success) {
-      console.log(`✓ Door ${channel} opened successfully on ${deviceHost || this.config.host}`);
-      return {
-        success: true,
-        message: `Door ${channel} opened successfully`,
-        action: 'open'
-      };
+      // Parse response for enhanced feedback
+      const isSuccess = result.data.includes('OK') || result.data.includes('success') || result.status === 200;
+      
+      if (isSuccess) {
+        console.log(`✓ Door ${channel} opened successfully on ${deviceHost || this.config.host}`);
+        return {
+          success: true,
+          message: `Door ${channel} opened successfully${duration ? ` for ${duration} seconds` : ''}`,
+          action: 'open'
+        };
+      } else {
+        console.error(`Door ${channel} operation returned unexpected response:`, result.data);
+        return {
+          success: false,
+          message: `Door ${channel} command sent but response unclear: ${result.data}`
+        };
+      }
     } else {
       console.error(`Failed to open door ${channel}:`, result.error);
       return {
@@ -148,12 +219,22 @@ export class DahuaService {
     );
     
     if (result.success) {
-      console.log(`✓ Door ${channel} closed successfully on ${deviceHost || this.config.host}`);
-      return {
-        success: true,
-        message: `Door ${channel} closed successfully`,
-        action: 'close'
-      };
+      const isSuccess = result.data.includes('OK') || result.data.includes('success') || result.status === 200;
+      
+      if (isSuccess) {
+        console.log(`✓ Door ${channel} closed successfully on ${deviceHost || this.config.host}`);
+        return {
+          success: true,
+          message: `Door ${channel} closed successfully`,
+          action: 'close'
+        };
+      } else {
+        console.error(`Door ${channel} close operation returned unexpected response:`, result.data);
+        return {
+          success: false,
+          message: `Door ${channel} close command sent but response unclear: ${result.data}`
+        };
+      }
     } else {
       console.error(`Failed to close door ${channel}:`, result.error);
       return {
@@ -197,17 +278,33 @@ export class DahuaService {
     }
   }
 
-  async getUnlockRecords(): Promise<DoorControlResult> {
+  async getUnlockRecords(startTime?: string, endTime?: string, count: number = 100): Promise<DoorControlResult & { records?: any[] }> {
     console.log('Retrieving unlock records from Dahua device');
     
-    const result = await this.makeRequest('/cgi-bin/recordFinder.cgi?action=find&name=AccessControlCardRec');
+    // Enhanced record retrieval with time filtering
+    let endpoint = '/cgi-bin/recordFinder.cgi?action=find&name=AccessControlCardRec';
+    
+    if (startTime) {
+      endpoint += `&StartTime=${encodeURIComponent(startTime)}`;
+    }
+    if (endTime) {
+      endpoint += `&EndTime=${encodeURIComponent(endTime)}`;
+    }
+    endpoint += `&count=${count}`;
+    
+    const result = await this.makeRequest(endpoint);
     
     if (result.success) {
       console.log('✓ Unlock records retrieved successfully');
+      
+      // Parse response data into structured format
+      const records = this.parseUnlockRecords(result.data);
+      
       return {
         success: true,
-        message: 'Unlock records retrieved successfully',
-        action: 'records'
+        message: `Retrieved ${records.length} unlock records`,
+        action: 'records',
+        records
       };
     } else {
       console.error('Failed to get unlock records:', result.error);
@@ -215,6 +312,37 @@ export class DahuaService {
         success: false,
         message: `Failed to get unlock records: ${result.error}`
       };
+    }
+  }
+
+  private parseUnlockRecords(data: string): any[] {
+    const records: any[] = [];
+    
+    try {
+      // Parse Dahua response format
+      const lines = data.split('\n');
+      let currentRecord: any = {};
+      
+      for (const line of lines) {
+        if (line.startsWith('records[')) {
+          const match = line.match(/records\[(\d+)\]\.(\w+)=(.+)/);
+          if (match) {
+            const [, index, field, value] = match;
+            const recordIndex = parseInt(index);
+            
+            if (!records[recordIndex]) {
+              records[recordIndex] = {};
+            }
+            
+            records[recordIndex][field] = value;
+          }
+        }
+      }
+      
+      return records.filter(record => record && Object.keys(record).length > 0);
+    } catch (error) {
+      console.error('Failed to parse unlock records:', error);
+      return [];
     }
   }
 
@@ -293,6 +421,168 @@ export class DahuaService {
     }
   }
 
+  async getDeviceInfo(deviceHost?: string, devicePort?: number): Promise<DoorControlResult & { deviceInfo?: any }> {
+    console.log(`Getting device information from ${deviceHost || this.config.host}:${devicePort || this.config.port}`);
+    
+    const endpoints = [
+      '/cgi-bin/magicBox.cgi?action=getDeviceType',
+      '/cgi-bin/magicBox.cgi?action=getSystemInfo',
+      '/cgi-bin/magicBox.cgi?action=getSoftwareVersion',
+      '/cgi-bin/magicBox.cgi?action=getHardwareVersion'
+    ];
+    
+    const deviceInfo: any = {};
+    let successCount = 0;
+    
+    for (const endpoint of endpoints) {
+      const result = await this.makeRequest(endpoint, 'GET', deviceHost, devicePort);
+      if (result.success) {
+        const key = endpoint.split('=')[1]; // Extract action name
+        deviceInfo[key] = this.parseDeviceResponse(result.data);
+        successCount++;
+      }
+    }
+    
+    if (successCount > 0) {
+      return {
+        success: true,
+        message: `Retrieved device information (${successCount}/${endpoints.length} endpoints)`,
+        action: 'deviceInfo',
+        deviceInfo
+      };
+    } else {
+      return {
+        success: false,
+        message: 'Failed to retrieve device information'
+      };
+    }
+  }
+
+  private parseDeviceResponse(data: string): any {
+    const info: any = {};
+    
+    try {
+      const lines = data.split('\n');
+      for (const line of lines) {
+        const [key, value] = line.split('=');
+        if (key && value) {
+          info[key.trim()] = value.trim();
+        }
+      }
+    } catch (error) {
+      console.error('Failed to parse device response:', error);
+    }
+    
+    return info;
+  }
+
+  async addUser(userInfo: { userID: string; userName: string; doors?: number[]; validFrom?: string; validTo?: string }): Promise<DoorControlResult> {
+    console.log(`Adding user ${userInfo.userName} with ID ${userInfo.userID}`);
+    
+    const postData = JSON.stringify({
+      Users: [{
+        UserID: userInfo.userID,
+        UserName: userInfo.userName,
+        UserType: 0, // Normal user
+        Doors: userInfo.doors || [0], // Default to door 0
+        ValidFrom: userInfo.validFrom || new Date().toISOString().split('T')[0],
+        ValidTo: userInfo.validTo || '2099-12-31'
+      }]
+    });
+    
+    const result = await this.makeRequest(
+      '/cgi-bin/AccessUser.cgi?action=insertMulti',
+      'POST',
+      undefined,
+      undefined,
+      postData,
+      'application/json'
+    );
+    
+    if (result.success) {
+      console.log(`✓ User ${userInfo.userName} added successfully`);
+      return {
+        success: true,
+        message: `User ${userInfo.userName} added successfully`,
+        action: 'addUser'
+      };
+    } else {
+      console.error(`Failed to add user ${userInfo.userName}:`, result.error);
+      return {
+        success: false,
+        message: `Failed to add user ${userInfo.userName}: ${result.error}`
+      };
+    }
+  }
+
+  async searchUsers(userID?: string, userName?: string): Promise<DoorControlResult & { users?: any[] }> {
+    console.log('Searching for users on Dahua device');
+    
+    let endpoint = '/cgi-bin/AccessUser.cgi?action=list';
+    
+    if (userID) {
+      endpoint += `&UserIDList[0]=${encodeURIComponent(userID)}`;
+    }
+    
+    const result = await this.makeRequest(endpoint);
+    
+    if (result.success) {
+      const users = this.parseUsersResponse(result.data);
+      console.log(`✓ Found ${users.length} users`);
+      
+      return {
+        success: true,
+        message: `Found ${users.length} users`,
+        action: 'searchUsers',
+        users
+      };
+    } else {
+      console.error('Failed to search users:', result.error);
+      return {
+        success: false,
+        message: `Failed to search users: ${result.error}`
+      };
+    }
+  }
+
+  private parseUsersResponse(data: string): any[] {
+    const users: any[] = [];
+    
+    try {
+      const lines = data.split('\n');
+      let currentUser: any = {};
+      let userIndex = -1;
+      
+      for (const line of lines) {
+        if (line.startsWith('Users[')) {
+          const match = line.match(/Users\[(\d+)\]\.(\w+)=(.+)/);
+          if (match) {
+            const [, index, field, value] = match;
+            const idx = parseInt(index);
+            
+            if (idx !== userIndex) {
+              if (userIndex >= 0) {
+                users.push(currentUser);
+              }
+              currentUser = {};
+              userIndex = idx;
+            }
+            
+            currentUser[field] = value;
+          }
+        }
+      }
+      
+      if (userIndex >= 0) {
+        users.push(currentUser);
+      }
+    } catch (error) {
+      console.error('Failed to parse users response:', error);
+    }
+    
+    return users;
+  }
+
   async testAllDevices(): Promise<{ success: boolean; message: string; deviceResults: any[] }> {
     console.log('Testing connections to all configured Dahua devices...');
     
@@ -300,7 +590,7 @@ export class DahuaService {
     let allSuccessful = true;
 
     // Test each configured device
-    for (const [roomEmail, device] of this.devices.entries()) {
+    for (const [roomEmail, device] of Array.from(this.devices.entries())) {
       console.log(`Testing device ${device.host}:${device.port || 80} for room ${roomEmail}`);
       
       const result = await this.makeRequest(
@@ -327,5 +617,98 @@ export class DahuaService {
       message: allSuccessful ? 'All devices connected' : 'Some devices failed',
       deviceResults: results
     };
+  }
+
+  // Webhook event parsing and validation
+  parseWebhookEvent(eventData: any): { isValid: boolean; eventType?: string; userInfo?: any; deviceInfo?: any } {
+    try {
+      // Enhanced webhook parsing based on Dahua specifications
+      if (!eventData || typeof eventData !== 'object') {
+        return { isValid: false };
+      }
+
+      // Common Dahua webhook fields
+      const eventType = eventData.Code || eventData.Action || 'unknown';
+      const userInfo = {
+        userID: eventData.UserID || eventData.PersonID,
+        userName: eventData.UserName || eventData.PersonName,
+        cardNo: eventData.CardNo,
+        method: eventData.Method // Face, Card, Password, etc.
+      };
+
+      const deviceInfo = {
+        channel: eventData.Channel || eventData.DoorNo,
+        deviceIP: eventData.DeviceIP,
+        serialNumber: eventData.SerialNumber,
+        timestamp: eventData.UTC || eventData.LocalTime
+      };
+
+      return {
+        isValid: true,
+        eventType,
+        userInfo,
+        deviceInfo
+      };
+    } catch (error) {
+      console.error('Failed to parse webhook event:', error);
+      return { isValid: false };
+    }
+  }
+
+  // Enhanced configuration management
+  async getAccessControlConfig(): Promise<DoorControlResult & { config?: any }> {
+    console.log('Getting access control configuration');
+    
+    const result = await this.makeRequest('/cgi-bin/configManager.cgi?action=getConfig&name=AccessControl');
+    
+    if (result.success) {
+      const config = this.parseConfigResponse(result.data);
+      return {
+        success: true,
+        message: 'Access control configuration retrieved',
+        action: 'getConfig',
+        config
+      };
+    } else {
+      return {
+        success: false,
+        message: `Failed to get configuration: ${result.error}`
+      };
+    }
+  }
+
+  private parseConfigResponse(data: string): any {
+    const config: any = {};
+    
+    try {
+      const lines = data.split('\n');
+      for (const line of lines) {
+        if (line.includes('=')) {
+          const [key, value] = line.split('=');
+          if (key && value) {
+            // Handle nested configuration keys like AccessControl[0].DoorHoldTime
+            const cleanKey = key.trim();
+            const cleanValue = value.trim();
+            
+            if (cleanKey.includes('[')) {
+              // Parse array-style configuration
+              const match = cleanKey.match(/(\w+)\[(\d+)\]\.(\w+)/);
+              if (match) {
+                const [, section, index, field] = match;
+                if (!config[section]) config[section] = [];
+                if (!config[section][parseInt(index)]) config[section][parseInt(index)] = {};
+                config[section][parseInt(index)][field] = cleanValue;
+              }
+            } else {
+              config[cleanKey] = cleanValue;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to parse config response:', error);
+    }
+    
+    return config;
   }
 }

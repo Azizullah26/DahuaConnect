@@ -498,12 +498,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Advanced Dahua operations endpoint
   app.post("/api/test/dahua-advanced", async (req, res) => {
     try {
-      const { action, userId, threshold } = req.body;
+      const { action, userId, threshold, startTime, endTime, count } = req.body;
       
       let result;
       switch (action) {
         case 'records':
-          result = await dahuaService.getUnlockRecords();
+          result = await dahuaService.getUnlockRecords(startTime, endTime, count);
           break;
         case 'capture':
           if (!userId) {
@@ -526,6 +526,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Enhanced device information endpoint
+  app.get("/api/test/device-info/:roomEmail?", async (req, res) => {
+    try {
+      const { roomEmail } = req.params;
+      console.log(`🔍 Getting device information for room: ${roomEmail || 'default'}`);
+      
+      let deviceHost, devicePort;
+      if (roomEmail) {
+        const deviceConfig = dahuaService.getDeviceByRoom(roomEmail);
+        if (deviceConfig) {
+          deviceHost = deviceConfig.host;
+          devicePort = deviceConfig.port;
+        }
+      }
+      
+      const result = await dahuaService.getDeviceInfo(deviceHost, devicePort);
+      res.json(result);
+    } catch (error) {
+      console.error('Error getting device info:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Internal server error getting device info' 
+      });
+    }
+  });
+
+  // User management endpoints
+  app.post('/api/test/add-user', async (req, res) => {
+    try {
+      const { userID, userName, doors, validFrom, validTo } = req.body;
+      console.log(`👤 Adding user ${userName} with ID ${userID}...`);
+      
+      const result = await dahuaService.addUser({
+        userID,
+        userName,
+        doors,
+        validFrom,
+        validTo
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error adding user:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Internal server error adding user' 
+      });
+    }
+  });
+
+  // User search endpoint  
+  app.get('/api/test/search-users', async (req, res) => {
+    try {
+      const { userID, userName } = req.query;
+      console.log('🔍 Searching for users...');
+      
+      const result = await dahuaService.searchUsers(
+        userID as string,
+        userName as string
+      );
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error searching users:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Internal server error searching users' 
+      });
+    }
+  });
+
+  // Enhanced door control with duration
+  app.post('/api/test/door-control-enhanced', async (req, res) => {
+    try {
+      const { action, channel, roomEmail, duration } = req.body;
+      console.log(`🚪 ${action} door ${channel} for room ${roomEmail}${duration ? ` for ${duration}s` : ''}...`);
+      
+      let result;
+      if (action === 'open') {
+        result = await dahuaService.openDoor(channel, roomEmail, duration);
+      } else if (action === 'close') {
+        result = await dahuaService.closeDoor(channel, roomEmail);
+      } else if (action === 'status') {
+        result = await dahuaService.getDoorStatus(channel, roomEmail);
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid action. Use: open, close, or status'
+        });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error controlling door:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Internal server error controlling door' 
+      });
+    }
+  });
+
+  // Access control configuration endpoint
+  app.get('/api/test/config', async (req, res) => {
+    try {
+      console.log('⚙️ Getting access control configuration...');
+      
+      const result = await dahuaService.getAccessControlConfig();
+      res.json(result);
+    } catch (error) {
+      console.error('Error getting configuration:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Internal server error getting configuration' 
       });
     }
   });
