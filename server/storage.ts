@@ -69,12 +69,12 @@ export class MemStorage implements IStorage {
     };
     this.userMappings.set(defaultUserMapping.id, defaultUserMapping);
 
-    // Default room mappings
+    // Default room mappings - matching device configuration
     const defaultRooms = [
-      { doorChannel: 1, roomEmail: "Room1@elrace.com", roomName: "Conference Room 1" },
-      { doorChannel: 2, roomEmail: "Room2@elrace.com", roomName: "Conference Room 2" },
-      { doorChannel: 3, roomEmail: "Room3@elrace.com", roomName: "Conference Room 3" },
-      { doorChannel: 4, roomEmail: "Room4@elrace.com", roomName: "Conference Room 4" },
+      { doorChannel: 1, roomEmail: "room1@elrace.com", roomName: "Conference Room 1" },
+      { doorChannel: 2, roomEmail: "room2@elrace.com", roomName: "Conference Room 2" },
+      { doorChannel: 3, roomEmail: "room3@elrace.com", roomName: "Conference Room 3" },
+      { doorChannel: 4, roomEmail: "room4@elrace.com", roomName: "Conference Room 4" },
     ];
 
     defaultRooms.forEach(room => {

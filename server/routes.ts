@@ -19,12 +19,20 @@ const graphService = new MicrosoftGraphService({
   clientSecret: process.env.AZURE_CLIENT_SECRET || '4pT8Q~zhZE_PFKf9nnZCrLNJqqZpYaotFqebTcPu'
 });
 
+// Configure all Dahua devices for different rooms
+const dahuaDeviceConfigs = [
+  { host: '10.255.254.8', port: 80, roomEmail: 'room1@elrace.com' },
+  { host: '10.255.254.9', port: 80, roomEmail: 'room2@elrace.com' },
+  { host: '10.255.254.10', port: 80, roomEmail: 'room3@elrace.com' },
+  { host: '10.255.254.11', port: 80, roomEmail: 'room4@elrace.com' }
+];
+
 const dahuaService = new DahuaService({
   host: process.env.DAHUA_HOST || '10.255.254.11',
   port: parseInt(process.env.DAHUA_PORT || '80'),
   username: process.env.DAHUA_USER || 'admin',
   password: process.env.DAHUA_PASS || 'P@ssw0rd@247#'
-});
+}, dahuaDeviceConfigs);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -254,7 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (activeMeeting.hasActiveMeeting) {
           // User has active meeting - keep door open during meeting time
-          const doorResult = await dahuaService.openDoor(door);
+          const doorResult = await dahuaService.openDoor(door, roomMapping.roomEmail);
           
           response.accessGranted = true;
           response.reason = `Active meeting access - door open until ${activeMeeting.meetingEnd}`;
@@ -443,21 +451,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/test/door", async (req, res) => {
     try {
-      const { channel, action = 'open' } = req.body;
+      const { channel, action = 'open', roomEmail } = req.body;
       
       let result;
       if (action === 'open') {
-        result = await dahuaService.openDoor(channel);
+        result = await dahuaService.openDoor(channel, roomEmail);
       } else if (action === 'close') {
-        result = await dahuaService.closeDoor(channel);
+        result = await dahuaService.closeDoor(channel, roomEmail);
       } else if (action === 'status') {
-        result = await dahuaService.getDoorStatus(channel);
+        result = await dahuaService.getDoorStatus(channel, roomEmail);
       } else {
         return res.status(400).json({ error: 'Invalid action. Use: open, close, or status' });
       }
 
       res.json(result);
     } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Test all device connections
+  app.post("/api/test/all-devices", async (req, res) => {
+    try {
+      console.log('🧪 Testing all Dahua device connections...');
+      
+      const result = await dahuaService.testAllDevices();
+      
+      res.json({
+        success: result.success,
+        message: result.message,
+        devices: result.deviceResults,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ All devices test failed:', error);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
