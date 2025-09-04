@@ -24,12 +24,32 @@ const graphService = new MicrosoftGraphService({
 });
 
 // Configure all Dahua devices for different rooms
+// 
+// IMPORTANT: To enable door control from cloud:
+// 1. Set up port forwarding on your router:
+//    - Forward external port 8443 → 10.255.254.8:443 (Room 1)
+//    - Forward external port 8444 → 10.255.254.9:443 (Room 2)  
+//    - Forward external port 8445 → 10.255.254.10:443 (Room 3)
+//    - Forward external port 8446 → 10.255.254.11:443 (Room 4)
+// 2. Get your public IP: https://whatismyipaddress.com
+// 3. Replace the host IPs below with your public IP
+// 4. Update the ports to match your forwarded ports
+//
+// Option A: Local network access (current - won't work from cloud)
 const dahuaDeviceConfigs = [
   { host: "10.255.254.8", port: 443, roomEmail: "room1@elrace.com" },
   { host: "10.255.254.9", port: 443, roomEmail: "room2@elrace.com" },
   { host: "10.255.254.10", port: 443, roomEmail: "room3@elrace.com" },
   { host: "10.255.254.11", port: 443, roomEmail: "room4@elrace.com" },
 ];
+
+// Option B: Public IP with port forwarding (uncomment and configure)
+// const dahuaDeviceConfigs = [
+//   { host: "YOUR_PUBLIC_IP", port: 8443, roomEmail: "room1@elrace.com" },
+//   { host: "YOUR_PUBLIC_IP", port: 8444, roomEmail: "room2@elrace.com" },
+//   { host: "YOUR_PUBLIC_IP", port: 8445, roomEmail: "room3@elrace.com" },
+//   { host: "YOUR_PUBLIC_IP", port: 8446, roomEmail: "room4@elrace.com" },
+// ];
 
 const dahuaService = new DahuaService(
   {
