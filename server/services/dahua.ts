@@ -65,19 +65,10 @@ export class DahuaService {
     const host = deviceHost || this.config.host;
     const port = devicePort || this.config.port;
     
-    // Handle Tailscale funnel URLs with paths
-    let url: string;
-    let isHttps = false;
-    if (host && host.includes('.ts.net') && host.includes('/room')) {
-      // Tailscale funnel URL with path - use HTTPS and don't add port
-      url = `https://${host}${path}`;
-      isHttps = true;
-    } else {
-      // Regular URL construction
-      const protocol = port === 443 ? 'https' : 'http';
-      url = `${protocol}://${host}:${port}${path}`;
-      isHttps = protocol === 'https';
-    }
+    // Determine protocol based on port (8443-8446 and 443 use HTTPS)
+    const isHttps = port === 443 || (port >= 8443 && port <= 8446);
+    const protocol = isHttps ? 'https' : 'http';
+    const url = `${protocol}://${host}:${port}${path}`;
     
     try {
       const headers: Record<string, string> = {
