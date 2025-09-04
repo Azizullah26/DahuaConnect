@@ -1,0 +1,160 @@
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+host: 'rccmiddleware.replit.app',
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+'content-length': '116609',
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+'accept-encoding': 'gzip',
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+'content-encoding': 'deflate',
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+traceparent: '00-3938413049bc5c921c30ab3d14ef7a85-e6e1e49554712339-00',
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+via: '1.1 google',
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+'x-cloud-trace-context': '3938413049bc5c921c30ab3d14ef7a85/16636829828501283641',
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+'x-forwarded-for': '2.50.131.77, 34.117.33.233, 35.191.76.17,104.154.151.15',
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+'x-forwarded-proto': 'https',
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+'x-replit-user-bio': '',
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+'x-replit-user-name': '',
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+'x-replit-user-roles': '',
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+'x-replit-user-teams': '',
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+'x-replit-user-url': ''
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+}
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+Body: {}
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+Code: FaceRecognition, Action: Start, Index: 1
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+Extracted - UserID: 1, Door: 1
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+⚠️ User ID 1 not mapped to any email address
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+7:02:06 AM [express] POST /api/dahua-webhook 200 in 2ms :: {"success":true,"accessGranted":false,"re…
+2025-09-04 11:02:31.02
+4e6f7b5a
+User
+> rest-express@1.0.0 start
+2025-09-04 11:02:31.02
+4e6f7b5a
+User
+> NODE_ENV=production node dist/index.js
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+'content-type': 'multipart/x-mixed-replace; boundary=myboundary',
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+'server-timing': 'depproxy;dur=1756969326509, pid1req;dur=1756969326560',
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+'x-forwarded-host': 'rccmiddleware.replit.app',
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+'x-replit-user-id': '',
+2025-09-04 11:02:06.56
+4e6f7b5a
+User
+'x-replit-user-profile-image': '',
+2025-09-04 11:02:33.94
+4e6f7b5a
+User
+7:02:33 AM [express] serving on port 5000
+2025-09-04 11:02:34.68
+4e6f7b5a
+User
+Error: incorrect header check
+2025-09-04 11:02:34.68
+4e6f7b5a
+User
+at genericNodeError (node:internal/errors:984:15)
+2025-09-04 11:02:34.68
+4e6f7b5a
+User
+at Zlib.zlibOnError [as onerror] (node:zlib:189:17)
+2025-09-04 11:02:34.68
+4e6f7b5a
+User
+at wrappedFn (node:internal/errors:538:14)
+2025-09-04 11:02:46.87
+4e6f7b5a
+User
+Error: incorrect header check
+2025-09-04 11:02:46.87
+4e6f7b5a
+User
+at genericNodeError (node:internal/errors:984:15)
+2025-09-04 11:02:46.87
+4e6f7b5a
+User
+at Zlib.zlibOnError [as onerror] (node:zlib:189:17)
+2025-09-04 11:02:46.87
+4e6f7b5a
+User
+at wrappedFn (node:internal/errors:538:14)
+2025-09-04 11:04:22.44
+4e6f7b5a
+User
+Error: incorrect header check
+2025-09-04 11:04:22.44
+4e6f7b5a
+User
+at genericNodeError (node:internal/errors:984:15)
+2025-09-04 11:04:22.44
+4e6f7b5a
+User
+at wrappedFn (node:internal/errors:538:14)
+2025-09-04 11:04:22.44
+4e6f7b5a
+User
+at Zlib.zlibOnError [as onerror] (node:zlib:189:17)

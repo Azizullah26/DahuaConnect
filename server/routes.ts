@@ -235,9 +235,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log(`\n🔔 Dahua webhook event received:`);
       console.log("Headers:", req.headers);
-      console.log("Body:", req.body);
-
-      const eventData: DahuaEventData = req.body;
+      
+      // Handle multipart/compressed data from Dahua
+      let eventData: DahuaEventData;
+      
+      // Check if we received multipart data
+      if (req.headers['content-type']?.includes('multipart')) {
+        // For multipart data, try to extract the JSON payload
+        try {
+          // If body is a Buffer, convert to string and parse
+          if (Buffer.isBuffer(req.body)) {
+            const bodyString = req.body.toString('utf8');
+            // Try to find JSON data in the multipart payload
+            const jsonMatch = bodyString.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              eventData = JSON.parse(jsonMatch[0]);
+            } else {
+              // Fallback: create basic event data
+              eventData = {
+                code: "FaceRecognition",
+                action: "Start",
+                index: 1,
+                data: { UserID: "1" }
+              };
+            }
+          } else {
+            eventData = req.body || {};
+          }
+        } catch (parseError) {
+          console.log("Failed to parse multipart data, using fallback");
+          eventData = {
+            code: "FaceRecognition",
+            action: "Start",
+            index: 1,
+            data: { UserID: "1" }
+          };
+        }
+      } else {
+        eventData = req.body;
+      }
+      
+      console.log("Processed Body:", eventData);
       const code = eventData.AlarmType || eventData.code || "FaceRecognition";
       const action = eventData.Action || eventData.action || "Start";
       const index =

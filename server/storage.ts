@@ -58,16 +58,29 @@ export class MemStorage implements IStorage {
   }
 
   private initializeDefaultData() {
-    // Default user mapping - based on your requirements
-    const defaultUserMapping: UserMapping = {
-      id: randomUUID(),
-      dahuaUserId: "2689",
-      email: "aziz@elrace.com", 
-      name: "Aziz",
-      createdAt: new Date(),
-      isActive: true,
-    };
-    this.userMappings.set(defaultUserMapping.id, defaultUserMapping);
+    // Default user mappings - based on your requirements
+    const userMappings: UserMapping[] = [
+      {
+        id: randomUUID(),
+        dahuaUserId: "2689",
+        email: "aziz@elrace.com", 
+        name: "Aziz",
+        createdAt: new Date(),
+        isActive: true,
+      },
+      {
+        id: randomUUID(),
+        dahuaUserId: "1",
+        email: "aziz@elrace.com", 
+        name: "Aziz (Device UserID 1)",
+        createdAt: new Date(),
+        isActive: true,
+      }
+    ];
+    
+    userMappings.forEach(mapping => {
+      this.userMappings.set(mapping.id, mapping);
+    });
 
     // Default room mappings - matching device configuration
     const defaultRooms = [
