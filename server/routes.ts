@@ -44,9 +44,8 @@ const graphService = new MicrosoftGraphService({
 // ];
 
 // Option C: Using Tailscale (ACTIVE)
-// IMPORTANT: Replace TAILSCALE_PC_IP with your office PC's Tailscale IP (run: tailscale ip -4)
-// Example: If your PC's Tailscale IP is 100.101.102.103, use that instead
-const TAILSCALE_PC_IP = "TAILSCALE_PC_IP"; // Replace this!
+// Your Tailscale PC IP configured for subnet routing to Dahua devices
+const TAILSCALE_PC_IP = "100.101.26.30";
 
 const dahuaDeviceConfigs = [
   { host: TAILSCALE_PC_IP, port: 8443, roomEmail: "room1@elrace.com" },
