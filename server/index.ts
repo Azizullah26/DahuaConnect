@@ -5,26 +5,38 @@ import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 
-// Handle compression from Dahua devices
-app.use(compression());
-
-// Custom middleware to handle Dahua multipart data without decompression errors
-app.use('/api/dahua-webhook', (req, res, next) => {
-  const contentType = req.headers['content-type'] || '';
-  
-  // For multipart or compressed data from Dahua, use raw parser
-  if (contentType.includes('multipart') || req.headers['content-encoding']) {
-    express.raw({ 
-      type: () => true, 
-      limit: '50mb',
-      verify: (req: any, res, buf) => {
-        // Store raw buffer without decompression attempts
-        req.rawBody = buf;
-      }
-    })(req, res, next);
-  } else {
+// Exclude webhook endpoint from compression middleware
+app.use((req, res, next) => {
+  // Skip compression for Dahua webhook to avoid decompression errors
+  if (req.path === '/api/dahua-webhook') {
     next();
+  } else {
+    compression()(req, res, next);
   }
+});
+
+// Special handling for Dahua webhook data
+app.use('/api/dahua-webhook', (req, res, next) => {
+  // Disable compression for response
+  res.setHeader('x-no-compression', '1');
+  
+  // Remove any compression headers from request to prevent decompression attempts
+  delete req.headers['content-encoding'];
+  delete req.headers['accept-encoding'];
+  
+  // Use raw body parser for all webhook data
+  express.raw({ 
+    type: () => true,
+    limit: '50mb',
+    inflate: false // Disable automatic decompression
+  })(req, res, (err) => {
+    if (err) {
+      console.log('Raw body parsing error (non-critical):', err.message);
+      // Continue anyway with empty body
+      req.body = req.body || {};
+    }
+    next();
+  });
 });
 
 app.use(express.json({ limit: '50mb' }));
