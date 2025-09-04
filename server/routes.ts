@@ -43,14 +43,14 @@ const graphService = new MicrosoftGraphService({
 //   { host: "10.255.254.11", port: 443, roomEmail: "room4@elrace.com" },
 // ];
 
-// Option B: Public IP with port forwarding (ACTIVE)
-// Router forwarding ports 8443-8446 to Dahua devices
-const PUBLIC_IP = "2.50.131.77";
+// Option T: Using Tailscale IP with port forwarding (ACTIVE)
+// Windows PC at 100.101.26.30 forwarding ports 8443-8446 to Dahua devices
+const TAILSCALE_PC_IP = "100.101.26.30";
 const dahuaDeviceConfigs = [
-  { host: PUBLIC_IP, port: 8443, roomEmail: "room1@elrace.com" },
-  { host: PUBLIC_IP, port: 8444, roomEmail: "room2@elrace.com" },
-  { host: PUBLIC_IP, port: 8445, roomEmail: "room3@elrace.com" },
-  { host: PUBLIC_IP, port: 8446, roomEmail: "room4@elrace.com" },
+  { host: TAILSCALE_PC_IP, port: 8443, roomEmail: "room1@elrace.com" },
+  { host: TAILSCALE_PC_IP, port: 8444, roomEmail: "room2@elrace.com" },
+  { host: TAILSCALE_PC_IP, port: 8445, roomEmail: "room3@elrace.com" },
+  { host: TAILSCALE_PC_IP, port: 8446, roomEmail: "room4@elrace.com" },
 ];
 
 // Option B: Public IP with port forwarding (BACKUP)
