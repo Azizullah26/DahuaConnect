@@ -36,11 +36,23 @@ const graphService = new MicrosoftGraphService({
 // 4. Update the ports to match your forwarded ports
 //
 // Option A: Local network access (current - won't work from cloud)
+// const dahuaDeviceConfigs = [
+//   { host: "10.255.254.8", port: 443, roomEmail: "room1@elrace.com" },
+//   { host: "10.255.254.9", port: 443, roomEmail: "room2@elrace.com" },
+//   { host: "10.255.254.10", port: 443, roomEmail: "room3@elrace.com" },
+//   { host: "10.255.254.11", port: 443, roomEmail: "room4@elrace.com" },
+// ];
+
+// Option C: Using Tailscale (ACTIVE)
+// IMPORTANT: Replace TAILSCALE_PC_IP with your office PC's Tailscale IP (run: tailscale ip -4)
+// Example: If your PC's Tailscale IP is 100.101.102.103, use that instead
+const TAILSCALE_PC_IP = "TAILSCALE_PC_IP"; // Replace this!
+
 const dahuaDeviceConfigs = [
-  { host: "10.255.254.8", port: 443, roomEmail: "room1@elrace.com" },
-  { host: "10.255.254.9", port: 443, roomEmail: "room2@elrace.com" },
-  { host: "10.255.254.10", port: 443, roomEmail: "room3@elrace.com" },
-  { host: "10.255.254.11", port: 443, roomEmail: "room4@elrace.com" },
+  { host: TAILSCALE_PC_IP, port: 8443, roomEmail: "room1@elrace.com" },
+  { host: TAILSCALE_PC_IP, port: 8444, roomEmail: "room2@elrace.com" },
+  { host: TAILSCALE_PC_IP, port: 8445, roomEmail: "room3@elrace.com" },
+  { host: TAILSCALE_PC_IP, port: 8446, roomEmail: "room4@elrace.com" },
 ];
 
 // Option B: Public IP with port forwarding (uncomment and configure)
