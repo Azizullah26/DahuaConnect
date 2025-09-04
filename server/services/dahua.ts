@@ -64,8 +64,20 @@ export class DahuaService {
   private async makeRequest(path: string, method: string = 'GET', deviceHost?: string, devicePort?: number, body?: string, contentType?: string): Promise<any> {
     const host = deviceHost || this.config.host;
     const port = devicePort || this.config.port;
-    const protocol = port === 443 ? 'https' : 'http';
-    const url = `${protocol}://${host}:${port}${path}`;
+    
+    // Handle Tailscale funnel URLs with paths
+    let url: string;
+    let isHttps = false;
+    if (host && host.includes('.ts.net') && host.includes('/room')) {
+      // Tailscale funnel URL with path - use HTTPS and don't add port
+      url = `https://${host}${path}`;
+      isHttps = true;
+    } else {
+      // Regular URL construction
+      const protocol = port === 443 ? 'https' : 'http';
+      url = `${protocol}://${host}:${port}${path}`;
+      isHttps = protocol === 'https';
+    }
     
     try {
       const headers: Record<string, string> = {
@@ -84,7 +96,7 @@ export class DahuaService {
       };
       
       // Handle HTTPS with self-signed certificates
-      if (protocol === 'https') {
+      if (isHttps) {
         const { Agent } = await import('https');
         fetchOptions.agent = new Agent({
           rejectUnauthorized: false
@@ -146,7 +158,7 @@ export class DahuaService {
           };
           
           // Handle HTTPS with self-signed certificates
-          if (protocol === 'https') {
+          if (isHttps) {
             const { Agent } = await import('https');
             authFetchOptions.agent = new Agent({
               rejectUnauthorized: false

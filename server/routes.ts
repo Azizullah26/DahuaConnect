@@ -43,15 +43,13 @@ const graphService = new MicrosoftGraphService({
 //   { host: "10.255.254.11", port: 443, roomEmail: "room4@elrace.com" },
 // ];
 
-// Option T: Using Tailscale Funnel (ACTIVE)
-// Your Tailscale funnel domain
-const TAILSCALE_FUNNEL = "laptop-3rsgcdq8.taildb7a53.ts.net";
-
+// Option T: Using Tailscale Funnel with Paths (ACTIVE)
+// Your Tailscale funnel domain with room paths
 const dahuaDeviceConfigs = [
-  { host: TAILSCALE_FUNNEL, port: 8443, roomEmail: "room1@elrace.com" },
-  { host: TAILSCALE_FUNNEL, port: 8444, roomEmail: "room2@elrace.com" },
-  { host: TAILSCALE_FUNNEL, port: 8445, roomEmail: "room3@elrace.com" },
-  { host: TAILSCALE_FUNNEL, port: 8446, roomEmail: "room4@elrace.com" },
+  { host: "laptop-3rsgcdq8.taildb7a53.ts.net/room1", port: 443, roomEmail: "room1@elrace.com" },
+  { host: "laptop-3rsgcdq8.taildb7a53.ts.net/room2", port: 443, roomEmail: "room2@elrace.com" },
+  { host: "laptop-3rsgcdq8.taildb7a53.ts.net/room3", port: 443, roomEmail: "room3@elrace.com" },
+  { host: "laptop-3rsgcdq8.taildb7a53.ts.net/room4", port: 443, roomEmail: "room4@elrace.com" },
 ];
 
 // Option B: Public IP with port forwarding (BACKUP)
