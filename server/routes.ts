@@ -43,16 +43,26 @@ const graphService = new MicrosoftGraphService({
 //   { host: "10.255.254.11", port: 443, roomEmail: "room4@elrace.com" },
 // ];
 
-// Option B: Public IP with port forwarding (ACTIVE)
-// Using your office public IP for door control
-const PUBLIC_IP = "2.50.131.77"; // Your office public IP
+// Option T: Using Tailscale Funnel (RECOMMENDED)
+// Replace with your actual Tailscale funnel domain
+// Get it from: tailscale funnel status
+const TAILSCALE_FUNNEL = "office-pc.tailnet.ts.net"; // ← REPLACE WITH YOUR FUNNEL URL!
 
 const dahuaDeviceConfigs = [
-  { host: PUBLIC_IP, port: 8443, roomEmail: "room1@elrace.com" },
-  { host: PUBLIC_IP, port: 8444, roomEmail: "room2@elrace.com" },
-  { host: PUBLIC_IP, port: 8445, roomEmail: "room3@elrace.com" },
-  { host: PUBLIC_IP, port: 8446, roomEmail: "room4@elrace.com" },
+  { host: TAILSCALE_FUNNEL, port: 8443, roomEmail: "room1@elrace.com" },
+  { host: TAILSCALE_FUNNEL, port: 8444, roomEmail: "room2@elrace.com" },
+  { host: TAILSCALE_FUNNEL, port: 8445, roomEmail: "room3@elrace.com" },
+  { host: TAILSCALE_FUNNEL, port: 8446, roomEmail: "room4@elrace.com" },
 ];
+
+// Option B: Public IP with port forwarding (BACKUP)
+// const PUBLIC_IP = "2.50.131.77";
+// const dahuaDeviceConfigs = [
+//   { host: PUBLIC_IP, port: 8443, roomEmail: "room1@elrace.com" },
+//   { host: PUBLIC_IP, port: 8444, roomEmail: "room2@elrace.com" },
+//   { host: PUBLIC_IP, port: 8445, roomEmail: "room3@elrace.com" },
+//   { host: PUBLIC_IP, port: 8446, roomEmail: "room4@elrace.com" },
+// ];
 
 // Option C: Using Tailscale (DISABLED - Replit can't access Tailscale network)
 // const TAILSCALE_PC_IP = "100.101.26.30";
