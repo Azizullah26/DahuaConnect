@@ -43,10 +43,9 @@ const graphService = new MicrosoftGraphService({
 //   { host: "10.255.254.11", port: 443, roomEmail: "room4@elrace.com" },
 // ];
 
-// Option T: Using Tailscale Funnel (RECOMMENDED)
-// Replace with your actual Tailscale funnel domain
-// Get it from: tailscale funnel status
-const TAILSCALE_FUNNEL = "office-pc.tailnet.ts.net"; // ← REPLACE WITH YOUR FUNNEL URL!
+// Option T: Using Tailscale Funnel (ACTIVE)
+// Your Tailscale funnel domain
+const TAILSCALE_FUNNEL = "laptop-3rsgcdq8.taildb7a53.ts.net";
 
 const dahuaDeviceConfigs = [
   { host: TAILSCALE_FUNNEL, port: 8443, roomEmail: "room1@elrace.com" },
