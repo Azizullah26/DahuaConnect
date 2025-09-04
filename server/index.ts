@@ -1,11 +1,21 @@
 import express, { type Request, Response, NextFunction } from "express";
+import compression from "compression";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Handle compression from Dahua devices
+app.use(compression());
+
+// Handle raw multipart data with custom error handling
+app.use('/api/dahua-webhook', express.raw({ 
+  type: ['multipart/x-mixed-replace', 'application/octet-stream', '*/*'], 
+  limit: '50mb' 
+}));
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
-app.use(express.raw({ type: 'multipart/x-mixed-replace', limit: '50mb' }));
 
 app.use((req, res, next) => {
   const start = Date.now();
