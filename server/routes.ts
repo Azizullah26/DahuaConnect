@@ -43,23 +43,25 @@ const graphService = new MicrosoftGraphService({
 //   { host: "10.255.254.11", port: 443, roomEmail: "room4@elrace.com" },
 // ];
 
-// Option C: Using Tailscale (ACTIVE)
-// Your Tailscale PC IP configured for subnet routing to Dahua devices
-const TAILSCALE_PC_IP = "100.101.26.30";
+// Option B: Public IP with port forwarding (ACTIVE)
+// IMPORTANT: Replace "YOUR_PUBLIC_IP" with your actual public IP
+// Get it from: https://whatismyipaddress.com
+const PUBLIC_IP = "YOUR_PUBLIC_IP"; // ← REPLACE THIS WITH YOUR PUBLIC IP!
 
 const dahuaDeviceConfigs = [
-  { host: TAILSCALE_PC_IP, port: 8443, roomEmail: "room1@elrace.com" },
-  { host: TAILSCALE_PC_IP, port: 8444, roomEmail: "room2@elrace.com" },
-  { host: TAILSCALE_PC_IP, port: 8445, roomEmail: "room3@elrace.com" },
-  { host: TAILSCALE_PC_IP, port: 8446, roomEmail: "room4@elrace.com" },
+  { host: PUBLIC_IP, port: 8443, roomEmail: "room1@elrace.com" },
+  { host: PUBLIC_IP, port: 8444, roomEmail: "room2@elrace.com" },
+  { host: PUBLIC_IP, port: 8445, roomEmail: "room3@elrace.com" },
+  { host: PUBLIC_IP, port: 8446, roomEmail: "room4@elrace.com" },
 ];
 
-// Option B: Public IP with port forwarding (uncomment and configure)
+// Option C: Using Tailscale (DISABLED - Replit can't access Tailscale network)
+// const TAILSCALE_PC_IP = "100.101.26.30";
 // const dahuaDeviceConfigs = [
-//   { host: "YOUR_PUBLIC_IP", port: 8443, roomEmail: "room1@elrace.com" },
-//   { host: "YOUR_PUBLIC_IP", port: 8444, roomEmail: "room2@elrace.com" },
-//   { host: "YOUR_PUBLIC_IP", port: 8445, roomEmail: "room3@elrace.com" },
-//   { host: "YOUR_PUBLIC_IP", port: 8446, roomEmail: "room4@elrace.com" },
+//   { host: TAILSCALE_PC_IP, port: 8443, roomEmail: "room1@elrace.com" },
+//   { host: TAILSCALE_PC_IP, port: 8444, roomEmail: "room2@elrace.com" },
+//   { host: TAILSCALE_PC_IP, port: 8445, roomEmail: "room3@elrace.com" },
+//   { host: TAILSCALE_PC_IP, port: 8446, roomEmail: "room4@elrace.com" },
 // ];
 
 const dahuaService = new DahuaService(
