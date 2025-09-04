@@ -44,9 +44,8 @@ const graphService = new MicrosoftGraphService({
 // ];
 
 // Option B: Public IP with port forwarding (ACTIVE)
-// IMPORTANT: Replace "YOUR_PUBLIC_IP" with your actual public IP
-// Get it from: https://whatismyipaddress.com
-const PUBLIC_IP = "YOUR_PUBLIC_IP"; // ← REPLACE THIS WITH YOUR PUBLIC IP!
+// Using your office public IP for door control
+const PUBLIC_IP = "2.50.131.77"; // Your office public IP
 
 const dahuaDeviceConfigs = [
   { host: PUBLIC_IP, port: 8443, roomEmail: "room1@elrace.com" },
