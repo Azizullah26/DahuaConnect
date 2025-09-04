@@ -8,11 +8,24 @@ const app = express();
 // Handle compression from Dahua devices
 app.use(compression());
 
-// Handle raw multipart data with custom error handling
-app.use('/api/dahua-webhook', express.raw({ 
-  type: ['multipart/x-mixed-replace', 'application/octet-stream', '*/*'], 
-  limit: '50mb' 
-}));
+// Custom middleware to handle Dahua multipart data without decompression errors
+app.use('/api/dahua-webhook', (req, res, next) => {
+  const contentType = req.headers['content-type'] || '';
+  
+  // For multipart or compressed data from Dahua, use raw parser
+  if (contentType.includes('multipart') || req.headers['content-encoding']) {
+    express.raw({ 
+      type: () => true, 
+      limit: '50mb',
+      verify: (req: any, res, buf) => {
+        // Store raw buffer without decompression attempts
+        req.rawBody = buf;
+      }
+    })(req, res, next);
+  } else {
+    next();
+  }
+});
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));

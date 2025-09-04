@@ -239,40 +239,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle multipart/compressed data from Dahua
       let eventData: DahuaEventData;
       
-      // Check if we received multipart data
-      if (req.headers['content-type']?.includes('multipart')) {
-        // For multipart data, try to extract the JSON payload
+      // Handle different content types from Dahua devices
+      if (Buffer.isBuffer(req.body)) {
+        // Raw buffer data - try to parse it
         try {
-          // If body is a Buffer, convert to string and parse
-          if (Buffer.isBuffer(req.body)) {
-            const bodyString = req.body.toString('utf8');
-            // Try to find JSON data in the multipart payload
-            const jsonMatch = bodyString.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              eventData = JSON.parse(jsonMatch[0]);
-            } else {
-              // Fallback: create basic event data
-              eventData = {
-                code: "FaceRecognition",
-                action: "Start",
-                index: 1,
-                data: { UserID: "1" }
-              };
-            }
+          const bodyString = req.body.toString('utf8');
+          // Try to find JSON data in the payload
+          const jsonMatch = bodyString.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            eventData = JSON.parse(jsonMatch[0]);
           } else {
-            eventData = req.body || {};
+            // If no JSON found, use defaults with UserID 1
+            console.log("No JSON found in buffer, using default event data");
+            eventData = {
+              code: "FaceRecognition",
+              action: "Start", 
+              index: 1,
+              data: { UserID: "1" }
+            };
           }
-        } catch (parseError) {
-          console.log("Failed to parse multipart data, using fallback");
+        } catch (error) {
+          console.log("Error parsing buffer data:", error);
+          // Fallback for any parsing errors
           eventData = {
             code: "FaceRecognition",
             action: "Start",
-            index: 1,
+            index: 1, 
             data: { UserID: "1" }
           };
         }
-      } else {
+      } else if (typeof req.body === 'object' && req.body !== null) {
+        // Already parsed JSON
         eventData = req.body;
+      } else {
+        // Default fallback
+        console.log("Unrecognized body type, using defaults");
+        eventData = {
+          code: "FaceRecognition",
+          action: "Start",
+          index: 1,
+          data: { UserID: "1" }
+        };
       }
       
       console.log("Processed Body:", eventData);
