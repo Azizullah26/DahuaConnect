@@ -14,13 +14,9 @@ import {
 
 // Initialize services
 const graphService = new MicrosoftGraphService({
-  clientId:
-    process.env.AZURE_CLIENT_ID || "206217f2-eb5f-46f5-aa7e-f246c2a97ef5",
-  tenantId:
-    process.env.AZURE_TENANT_ID || "14a72467-3f25-4572-a535-3d5eddb00cc5",
-  clientSecret:
-    process.env.AZURE_CLIENT_SECRET ||
-    "4pT8Q~zhZE_PFKf9nnZCrLNJqqZpYaotFqebTcPu",
+  clientId: process.env.AZURE_CLIENT_ID!,
+  tenantId: process.env.AZURE_TENANT_ID!,
+  clientSecret: process.env.AZURE_CLIENT_SECRET!,
 });
 
 // Configure all Dahua devices for different rooms
@@ -295,7 +291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               code: "FaceRecognition",
               action: "Start", 
               index: 1,
-              data: { UserID: "1" }
+              Data: { UserID: "1" }
             };
           }
         } catch (error) {
@@ -305,7 +301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             code: "FaceRecognition",
             action: "Start",
             index: 1, 
-            data: { UserID: "1" }
+            Data: { UserID: "1" }
           };
         }
       } else if (typeof req.body === 'object' && req.body !== null) {
@@ -318,7 +314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           code: "FaceRecognition",
           action: "Start",
           index: 1,
-          data: { UserID: "1" }
+          Data: { UserID: "1" }
         };
       }
       
