@@ -72,7 +72,7 @@ const dahuaService = new DahuaService(
     host: process.env.DAHUA_HOST || "10.255.254.8",
     port: parseInt(process.env.DAHUA_PORT || "443"),
     username: process.env.DAHUA_USER || "admin",
-    password: process.env.DAHUA_PASS!,
+    password: process.env.DAHUA_PASS || "P@ssw0rd@247#",
   },
   dahuaDeviceConfigs,
 );
