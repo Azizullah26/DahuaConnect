@@ -1,0 +1,720 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dahua-Microsoft Graph Middleware Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    borderRadius: {
+                        lg: "var(--radius)",
+                        md: "calc(var(--radius) - 2px)",
+                        sm: "calc(var(--radius) - 4px)",
+                    },
+                    colors: {
+                        background: "var(--background)",
+                        foreground: "var(--foreground)",
+                        card: {
+                            DEFAULT: "var(--card)",
+                            foreground: "var(--card-foreground)",
+                        },
+                        popover: {
+                            DEFAULT: "var(--popover)",
+                            foreground: "var(--popover-foreground)",
+                        },
+                        primary: {
+                            DEFAULT: "var(--primary)",
+                            foreground: "var(--primary-foreground)",
+                        },
+                        secondary: {
+                            DEFAULT: "var(--secondary)",
+                            foreground: "var(--secondary-foreground)",
+                        },
+                        muted: {
+                            DEFAULT: "var(--muted)",
+                            foreground: "var(--muted-foreground)",
+                        },
+                        accent: {
+                            DEFAULT: "var(--accent)",
+                            foreground: "var(--accent-foreground)",
+                        },
+                        destructive: {
+                            DEFAULT: "var(--destructive)",
+                            foreground: "var(--destructive-foreground)",
+                        },
+                        border: "var(--border)",
+                        input: "var(--input)",
+                        ring: "var(--ring)",
+                        chart: {
+                            "1": "var(--chart-1)",
+                            "2": "var(--chart-2)",
+                            "3": "var(--chart-3)",
+                            "4": "var(--chart-4)",
+                            "5": "var(--chart-5)",
+                        }
+                    },
+                    fontFamily: {
+                        sans: ["var(--font-sans)"],
+                        serif: ["var(--font-serif)"],
+                        mono: ["var(--font-mono)"],
+                    }
+                },
+            }
+        };
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --background: hsl(240 10% 7%);
+            --foreground: hsl(0 0% 95%);
+            --card: hsl(240 10% 11%);
+            --card-foreground: hsl(0 0% 95%);
+            --popover: hsl(240 10% 11%);
+            --popover-foreground: hsl(0 0% 95%);
+            --primary: hsl(210 98% 48%);
+            --primary-foreground: hsl(0 0% 98%);
+            --secondary: hsl(240 4% 16%);
+            --secondary-foreground: hsl(0 0% 95%);
+            --muted: hsl(240 4% 16%);
+            --muted-foreground: hsl(240 5% 65%);
+            --accent: hsl(180 65% 35%);
+            --accent-foreground: hsl(0 0% 95%);
+            --destructive: hsl(0 73% 41%);
+            --destructive-foreground: hsl(0 0% 95%);
+            --border: hsl(240 4% 16%);
+            --input: hsl(240 4% 16%);
+            --ring: hsl(210 98% 48%);
+            --chart-1: hsl(210 98% 48%);
+            --chart-2: hsl(180 65% 35%);
+            --chart-3: hsl(47 96% 53%);
+            --chart-4: hsl(0 73% 41%);
+            --chart-5: hsl(142 69% 58%);
+            --radius: 0.5rem;
+            --font-sans: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --font-serif: 'Georgia', serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+
+        body {
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            font-family: var(--font-sans);
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-online { background-color: #4caf50; }
+        .status-offline { background-color: #f44336; }
+        .status-warning { background-color: #ff9800; }
+
+        .card-hover:hover {
+            transform: translateY(-2px);
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .gradient-border {
+            background: linear-gradient(45deg, hsl(var(--primary)), hsl(var(--accent)));
+            padding: 1px;
+            border-radius: calc(var(--radius) + 1px);
+        }
+
+        .gradient-border > div {
+            background: hsl(var(--card));
+            border-radius: var(--radius);
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-background text-foreground">
+    <!-- @COMPONENT: SideNavigation -->
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-card border-r border-border flex flex-col">
+            <!-- Logo/Header -->
+            <div class="p-6 border-b border-border">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                        <i class="fas fa-shield-alt text-primary-foreground text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-semibold text-foreground">Access Control</h1>
+                        <p class="text-xs text-muted-foreground">Middleware Dashboard</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Menu -->
+            <nav class="flex-1 p-4 space-y-2">
+                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                    <i class="fas fa-tachometer-alt w-5"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                    <i class="fas fa-history w-5"></i>
+                    <span>Access Logs</span>
+                </a>
+                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                    <i class="fas fa-users w-5"></i>
+                    <span>User Mappings</span>
+                </a>
+                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                    <i class="fas fa-door-open w-5"></i>
+                    <span>Room Mappings</span>
+                </a>
+                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                    <i class="fas fa-cog w-5"></i>
+                    <span>Configuration</span>
+                </a>
+                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                    <i class="fas fa-flask w-5"></i>
+                    <span>Test Endpoints</span>
+                </a>
+            </nav>
+
+            <!-- System Status -->
+            <div class="p-4 border-t border-border">
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-muted-foreground">Dahua Connection</span>
+                        <div class="flex items-center">
+                            <span class="status-indicator status-online"></span>
+                            <span class="text-xs text-accent">Online</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-muted-foreground">Microsoft Graph</span>
+                        <div class="flex items-center">
+                            <span class="status-indicator status-online"></span>
+                            <span class="text-xs text-accent">Connected</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-muted-foreground">Server Health</span>
+                        <div class="flex items-center">
+                            <span class="status-indicator status-online"></span>
+                            <span class="text-xs text-accent">Healthy</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <!-- @END_COMPONENT: SideNavigation -->
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <!-- @COMPONENT: TopBar -->
+            <header class="bg-card border-b border-border px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-semibold text-foreground">Dashboard</h1>
+                        <p class="text-sm text-muted-foreground">Monitor and manage access control system</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-2 h-2 bg-accent rounded-full pulse-animation"></div>
+                            <span class="text-sm text-muted-foreground">Live Monitoring</span>
+                        </div>
+                        <button class="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                            <i class="fas fa-sync-alt"></i>
+                            <span>Refresh</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+            <!-- @END_COMPONENT: TopBar -->
+
+            <!-- Dashboard Content -->
+            <div class="flex-1 overflow-auto p-6">
+                <!-- @COMPONENT: MetricsCards -->
+                <!-- Stats Overview -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-card rounded-lg p-6 border border-border card-hover">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-muted-foreground">Today's Access Attempts</p>
+                                <p class="text-3xl font-bold text-foreground">247</p>
+                                <p class="text-sm text-accent">+12% from yesterday</p>
+                            </div>
+                            <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-user-check text-primary text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-card rounded-lg p-6 border border-border card-hover">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-muted-foreground">Successful Access</p>
+                                <p class="text-3xl font-bold text-foreground">231</p>
+                                <p class="text-sm text-accent">93.5% success rate</p>
+                            </div>
+                            <div class="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-door-open text-accent text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-card rounded-lg p-6 border border-border card-hover">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-muted-foreground">Denied Access</p>
+                                <p class="text-3xl font-bold text-foreground">16</p>
+                                <p class="text-sm text-destructive">No valid booking</p>
+                            </div>
+                            <div class="w-12 h-12 bg-destructive/10 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-ban text-destructive text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-card rounded-lg p-6 border border-border card-hover">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-muted-foreground">Active Rooms</p>
+                                <p class="text-3xl font-bold text-foreground">4</p>
+                                <p class="text-sm text-muted-foreground">of 4 monitored</p>
+                            </div>
+                            <div class="w-12 h-12 bg-chart-2/10 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-building text-chart-2 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: MetricsCards -->
+
+                <!-- Recent Activity & Quick Actions -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <!-- @COMPONENT: RecentActivity -->
+                    <div class="bg-card rounded-lg border border-border">
+                        <div class="p-6 border-b border-border">
+                            <h3 class="text-lg font-semibold text-foreground flex items-center">
+                                <i class="fas fa-clock mr-2 text-primary"></i>
+                                Recent Access Events
+                            </h3>
+                        </div>
+                        <div class="p-6">
+                            <div class="space-y-4">
+                                <!-- @MAP: recentEvents.map(event => ( -->
+                                <div class="flex items-center space-x-4 p-3 bg-secondary/50 rounded-lg" data-mock="true">
+                                    <div class="w-10 h-10 bg-accent rounded-full flex items-center justify-center">
+                                        <i class="fas fa-check text-accent-foreground text-sm"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-foreground">aziz@elrace.com</p>
+                                        <p class="text-xs text-muted-foreground">Room 1 • Face Recognition</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-xs text-muted-foreground">2:34 PM</p>
+                                        <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-accent/10 text-accent">Granted</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center space-x-4 p-3 bg-secondary/50 rounded-lg" data-mock="true">
+                                    <div class="w-10 h-10 bg-destructive rounded-full flex items-center justify-center">
+                                        <i class="fas fa-times text-destructive-foreground text-sm"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-foreground">Unknown User (ID: 9876)</p>
+                                        <p class="text-xs text-muted-foreground">Room 2 • Face Recognition</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-xs text-muted-foreground">2:28 PM</p>
+                                        <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-destructive/10 text-destructive">Denied</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center space-x-4 p-3 bg-secondary/50 rounded-lg" data-mock="true">
+                                    <div class="w-10 h-10 bg-accent rounded-full flex items-center justify-center">
+                                        <i class="fas fa-check text-accent-foreground text-sm"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-foreground">aziz@elrace.com</p>
+                                        <p class="text-xs text-muted-foreground">Room 3 • Face Recognition</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-xs text-muted-foreground">2:15 PM</p>
+                                        <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-accent/10 text-accent">Granted</span>
+                                    </div>
+                                </div>
+                                <!-- @END_MAP )) -->
+                            </div>
+                            <button class="w-full mt-4 py-2 text-sm text-primary hover:text-primary/80 transition-colors">
+                                View All Events →
+                            </button>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: RecentActivity -->
+
+                    <!-- @COMPONENT: QuickActions -->
+                    <div class="bg-card rounded-lg border border-border">
+                        <div class="p-6 border-b border-border">
+                            <h3 class="text-lg font-semibold text-foreground flex items-center">
+                                <i class="fas fa-bolt mr-2 text-primary"></i>
+                                Quick Actions
+                            </h3>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <button class="w-full flex items-center justify-between p-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors" data-event="click:testConnection">
+                                <div class="flex items-center space-x-3">
+                                    <i class="fas fa-network-wired"></i>
+                                    <span>Test System Connection</span>
+                                </div>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+
+                            <button class="w-full flex items-center justify-between p-4 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors" data-event="click:simulateEvent">
+                                <div class="flex items-center space-x-3">
+                                    <i class="fas fa-play"></i>
+                                    <span>Simulate Face Recognition</span>
+                                </div>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+
+                            <button class="w-full flex items-center justify-between p-4 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors" data-event="click:addUserMapping">
+                                <div class="flex items-center space-x-3">
+                                    <i class="fas fa-user-plus"></i>
+                                    <span>Add User Mapping</span>
+                                </div>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+
+                            <button class="w-full flex items-center justify-between p-4 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors" data-event="click:viewLogs">
+                                <div class="flex items-center space-x-3">
+                                    <i class="fas fa-file-alt"></i>
+                                    <span>Export Access Logs</span>
+                                </div>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: QuickActions -->
+                </div>
+
+                <!-- System Configuration & Mappings -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- @COMPONENT: UserMappings -->
+                    <div class="bg-card rounded-lg border border-border">
+                        <div class="p-6 border-b border-border">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold text-foreground flex items-center">
+                                    <i class="fas fa-users mr-2 text-primary"></i>
+                                    User Mappings
+                                </h3>
+                                <button class="px-3 py-1 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90 transition-colors" data-event="click:addUser">
+                                    <i class="fas fa-plus mr-1"></i>
+                                    Add User
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <div class="space-y-3">
+                                <!-- @MAP: userMappings.map(mapping => ( -->
+                                <div class="flex items-center justify-between p-3 bg-secondary/30 rounded-lg" data-mock="true">
+                                    <div>
+                                        <p class="text-sm font-medium text-foreground" data-bind="mapping.email">aziz@elrace.com</p>
+                                        <p class="text-xs text-muted-foreground">User ID: <span data-bind="mapping.userId">12345</span></p>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="status-indicator status-online"></span>
+                                        <button class="text-destructive hover:text-destructive/80 transition-colors" data-event="click:removeUser">
+                                            <i class="fas fa-trash text-sm"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- @END_MAP )) -->
+                                
+                                <div class="flex items-center justify-center p-6 border-2 border-dashed border-border rounded-lg" data-mock="true">
+                                    <div class="text-center">
+                                        <p class="text-sm text-muted-foreground">No additional users mapped</p>
+                                        <button class="text-xs text-primary hover:text-primary/80 mt-1 transition-colors">
+                                            Add your first user mapping
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: UserMappings -->
+
+                    <!-- @COMPONENT: RoomMappings -->
+                    <div class="bg-card rounded-lg border border-border">
+                        <div class="p-6 border-b border-border">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold text-foreground flex items-center">
+                                    <i class="fas fa-door-open mr-2 text-primary"></i>
+                                    Room Mappings
+                                </h3>
+                                <button class="px-3 py-1 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90 transition-colors" data-event="click:addRoom">
+                                    <i class="fas fa-plus mr-1"></i>
+                                    Add Room
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <div class="space-y-3">
+                                <!-- @MAP: roomMappings.map(mapping => ( -->
+                                <div class="flex items-center justify-between p-3 bg-secondary/30 rounded-lg" data-mock="true">
+                                    <div>
+                                        <p class="text-sm font-medium text-foreground" data-bind="mapping.roomEmail">Room1@elrace.com</p>
+                                        <p class="text-xs text-muted-foreground">Door/Channel: <span data-bind="mapping.doorId">1</span></p>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="status-indicator status-online"></span>
+                                        <button class="text-destructive hover:text-destructive/80 transition-colors" data-event="click:removeRoom">
+                                            <i class="fas fa-trash text-sm"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between p-3 bg-secondary/30 rounded-lg" data-mock="true">
+                                    <div>
+                                        <p class="text-sm font-medium text-foreground">Room2@elrace.com</p>
+                                        <p class="text-xs text-muted-foreground">Door/Channel: 2</p>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="status-indicator status-online"></span>
+                                        <button class="text-destructive hover:text-destructive/80 transition-colors">
+                                            <i class="fas fa-trash text-sm"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between p-3 bg-secondary/30 rounded-lg" data-mock="true">
+                                    <div>
+                                        <p class="text-sm font-medium text-foreground">Room3@elrace.com</p>
+                                        <p class="text-xs text-muted-foreground">Door/Channel: 3</p>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="status-indicator status-warning"></span>
+                                        <button class="text-destructive hover:text-destructive/80 transition-colors">
+                                            <i class="fas fa-trash text-sm"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between p-3 bg-secondary/30 rounded-lg" data-mock="true">
+                                    <div>
+                                        <p class="text-sm font-medium text-foreground">Room4@elrace.com</p>
+                                        <p class="text-xs text-muted-foreground">Door/Channel: 4</p>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="status-indicator status-online"></span>
+                                        <button class="text-destructive hover:text-destructive/80 transition-colors">
+                                            <i class="fas fa-trash text-sm"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- @END_MAP )) -->
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: RoomMappings -->
+                </div>
+
+                <!-- Test Interface -->
+                <div class="mt-8">
+                    <!-- @COMPONENT: TestInterface -->
+                    <div class="gradient-border">
+                        <div class="bg-card rounded-lg p-6">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-lg font-semibold text-foreground flex items-center">
+                                    <i class="fas fa-flask mr-2 text-primary"></i>
+                                    Test Interface
+                                </h3>
+                                <span class="px-3 py-1 bg-accent/10 text-accent rounded-full text-xs">
+                                    Development Mode
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <!-- Test Webhook -->
+                                <div class="bg-secondary/50 rounded-lg p-4">
+                                    <h4 class="font-medium text-foreground mb-3 flex items-center">
+                                        <i class="fas fa-webhook mr-2 text-primary text-sm"></i>
+                                        Test Webhook
+                                    </h4>
+                                    <form class="space-y-3" data-implementation="Should send test webhook event">
+                                        <div>
+                                            <label class="block text-xs text-muted-foreground mb-1">User ID</label>
+                                            <input type="text" value="12345" class="w-full px-3 py-2 bg-input border border-border rounded text-sm text-foreground" data-mock="true">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-muted-foreground mb-1">Door/Channel</label>
+                                            <select class="w-full px-3 py-2 bg-input border border-border rounded text-sm text-foreground" data-mock="true">
+                                                <option>1</option>
+                                                <option>2</option>
+                                                <option>3</option>
+                                                <option>4</option>
+                                            </select>
+                                        </div>
+                                        <button type="submit" class="w-full py-2 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90 transition-colors" data-event="click:testWebhook">
+                                            Send Test Event
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <!-- Test Calendar -->
+                                <div class="bg-secondary/50 rounded-lg p-4">
+                                    <h4 class="font-medium text-foreground mb-3 flex items-center">
+                                        <i class="fas fa-calendar mr-2 text-accent text-sm"></i>
+                                        Test Calendar
+                                    </h4>
+                                    <form class="space-y-3" data-implementation="Should test Microsoft Graph calendar integration">
+                                        <div>
+                                            <label class="block text-xs text-muted-foreground mb-1">User Email</label>
+                                            <input type="email" value="aziz@elrace.com" class="w-full px-3 py-2 bg-input border border-border rounded text-sm text-foreground" data-mock="true">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-muted-foreground mb-1">Room Email</label>
+                                            <select class="w-full px-3 py-2 bg-input border border-border rounded text-sm text-foreground" data-mock="true">
+                                                <option>Room1@elrace.com</option>
+                                                <option>Room2@elrace.com</option>
+                                                <option>Room3@elrace.com</option>
+                                                <option>Room4@elrace.com</option>
+                                            </select>
+                                        </div>
+                                        <button type="submit" class="w-full py-2 bg-accent text-accent-foreground rounded text-sm hover:bg-accent/90 transition-colors" data-event="click:testCalendar">
+                                            Test Calendar
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <!-- Health Check -->
+                                <div class="bg-secondary/50 rounded-lg p-4">
+                                    <h4 class="font-medium text-foreground mb-3 flex items-center">
+                                        <i class="fas fa-heartbeat mr-2 text-chart-2 text-sm"></i>
+                                        Health Check
+                                    </h4>
+                                    <div class="space-y-3">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs text-muted-foreground">Server Status</span>
+                                            <span class="text-xs text-accent">Healthy</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs text-muted-foreground">Last Check</span>
+                                            <span class="text-xs text-muted-foreground" data-mock="true">2:34 PM</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs text-muted-foreground">Uptime</span>
+                                            <span class="text-xs text-muted-foreground" data-mock="true">2h 34m</span>
+                                        </div>
+                                        <button class="w-full py-2 bg-chart-2 text-primary-foreground rounded text-sm hover:bg-chart-2/90 transition-colors" data-event="click:runHealthCheck">
+                                            Run Health Check
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: TestInterface -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- @COMPONENT: NotificationToast -->
+    <div id="notification" class="fixed top-4 right-4 z-50 hidden">
+        <div class="bg-card border border-border rounded-lg p-4 shadow-lg max-w-sm">
+            <div class="flex items-start space-x-3">
+                <div class="w-5 h-5 bg-accent rounded-full flex items-center justify-center mt-0.5">
+                    <i class="fas fa-check text-accent-foreground text-xs"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-foreground">Test completed successfully</p>
+                    <p class="text-xs text-muted-foreground mt-1">Connection to all services verified</p>
+                </div>
+                <button class="text-muted-foreground hover:text-foreground">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: NotificationToast -->
+
+    <script>
+        // TODO: Implement business logic, API calls, and state management
+        (function() {
+            // Simulate real-time updates
+            function updateLastActivity() {
+                const timeElements = document.querySelectorAll('[data-mock="true"]');
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('en-US', { 
+                    hour: 'numeric', 
+                    minute: '2-digit',
+                    hour12: true 
+                });
+                
+                // Update time displays
+                timeElements.forEach(el => {
+                    if (el.textContent.includes('PM') || el.textContent.includes('AM')) {
+                        el.textContent = timeString;
+                    }
+                });
+            }
+
+            // Simulate status indicators
+            function updateStatusIndicators() {
+                const indicators = document.querySelectorAll('.status-indicator');
+                indicators.forEach(indicator => {
+                    // Randomly simulate status changes for demo
+                    if (Math.random() > 0.95) {
+                        indicator.classList.toggle('status-warning');
+                        setTimeout(() => {
+                            indicator.classList.remove('status-warning');
+                            indicator.classList.add('status-online');
+                        }, 2000);
+                    }
+                });
+            }
+
+            // Show notification
+            function showNotification(title, message, type = 'success') {
+                const notification = document.getElementById('notification');
+                notification.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    notification.classList.add('hidden');
+                }, 3000);
+            }
+
+            // Bind event listeners
+            document.addEventListener('click', function(e) {
+                const target = e.target.closest('[data-event]');
+                if (target) {
+                    const event = target.getAttribute('data-event');
+                    console.log('Event triggered:', event);
+                    
+                    // Show notification for demo
+                    if (event.includes('test')) {
+                        showNotification('Test completed', 'Operation successful');
+                    }
+                }
+            });
+
+            // Update every 30 seconds
+            setInterval(updateLastActivity, 30000);
+            setInterval(updateStatusIndicators, 5000);
+
+            // Initial call
+            updateLastActivity();
+        })();
+    </script>
+</body>
+</html>
